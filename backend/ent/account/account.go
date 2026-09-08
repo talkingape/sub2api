@@ -22,6 +22,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
+	// FieldManagerUserID holds the string denoting the manager_user_id field in the database.
+	FieldManagerUserID = "manager_user_id"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// FieldNotes holds the string denoting the notes field in the database.
@@ -134,6 +136,7 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
+	FieldManagerUserID,
 	FieldName,
 	FieldNotes,
 	FieldPlatform,
@@ -269,6 +272,11 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
+}
+
+// ByManagerUserID orders the results by the manager_user_id field.
+func ByManagerUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldManagerUserID, opts...).ToFunc()
 }
 
 // ByName orders the results by the name field.

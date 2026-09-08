@@ -57,6 +57,33 @@ func (_u *AccountUpdate) ClearDeletedAt() *AccountUpdate {
 	return _u
 }
 
+// SetManagerUserID sets the "manager_user_id" field.
+func (_u *AccountUpdate) SetManagerUserID(v int64) *AccountUpdate {
+	_u.mutation.ResetManagerUserID()
+	_u.mutation.SetManagerUserID(v)
+	return _u
+}
+
+// SetNillableManagerUserID sets the "manager_user_id" field if the given value is not nil.
+func (_u *AccountUpdate) SetNillableManagerUserID(v *int64) *AccountUpdate {
+	if v != nil {
+		_u.SetManagerUserID(*v)
+	}
+	return _u
+}
+
+// AddManagerUserID adds value to the "manager_user_id" field.
+func (_u *AccountUpdate) AddManagerUserID(v int64) *AccountUpdate {
+	_u.mutation.AddManagerUserID(v)
+	return _u
+}
+
+// ClearManagerUserID clears the value of the "manager_user_id" field.
+func (_u *AccountUpdate) ClearManagerUserID() *AccountUpdate {
+	_u.mutation.ClearManagerUserID()
+	return _u
+}
+
 // SetName sets the "name" field.
 func (_u *AccountUpdate) SetName(v string) *AccountUpdate {
 	_u.mutation.SetName(v)
@@ -811,6 +838,15 @@ func (_u *AccountUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(account.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := _u.mutation.ManagerUserID(); ok {
+		_spec.SetField(account.FieldManagerUserID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedManagerUserID(); ok {
+		_spec.AddField(account.FieldManagerUserID, field.TypeInt64, value)
+	}
+	if _u.mutation.ManagerUserIDCleared() {
+		_spec.ClearField(account.FieldManagerUserID, field.TypeInt64)
+	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(account.FieldName, field.TypeString, value)
 	}
@@ -1194,6 +1230,33 @@ func (_u *AccountUpdateOne) SetNillableDeletedAt(v *time.Time) *AccountUpdateOne
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (_u *AccountUpdateOne) ClearDeletedAt() *AccountUpdateOne {
 	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetManagerUserID sets the "manager_user_id" field.
+func (_u *AccountUpdateOne) SetManagerUserID(v int64) *AccountUpdateOne {
+	_u.mutation.ResetManagerUserID()
+	_u.mutation.SetManagerUserID(v)
+	return _u
+}
+
+// SetNillableManagerUserID sets the "manager_user_id" field if the given value is not nil.
+func (_u *AccountUpdateOne) SetNillableManagerUserID(v *int64) *AccountUpdateOne {
+	if v != nil {
+		_u.SetManagerUserID(*v)
+	}
+	return _u
+}
+
+// AddManagerUserID adds value to the "manager_user_id" field.
+func (_u *AccountUpdateOne) AddManagerUserID(v int64) *AccountUpdateOne {
+	_u.mutation.AddManagerUserID(v)
+	return _u
+}
+
+// ClearManagerUserID clears the value of the "manager_user_id" field.
+func (_u *AccountUpdateOne) ClearManagerUserID() *AccountUpdateOne {
+	_u.mutation.ClearManagerUserID()
 	return _u
 }
 
@@ -1980,6 +2043,15 @@ func (_u *AccountUpdateOne) sqlSave(ctx context.Context) (_node *Account, err er
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(account.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.ManagerUserID(); ok {
+		_spec.SetField(account.FieldManagerUserID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedManagerUserID(); ok {
+		_spec.AddField(account.FieldManagerUserID, field.TypeInt64, value)
+	}
+	if _u.mutation.ManagerUserIDCleared() {
+		_spec.ClearField(account.FieldManagerUserID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(account.FieldName, field.TypeString, value)

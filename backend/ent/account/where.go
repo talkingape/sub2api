@@ -70,6 +70,11 @@ func DeletedAt(v time.Time) predicate.Account {
 	return predicate.Account(sql.FieldEQ(FieldDeletedAt, v))
 }
 
+// ManagerUserID applies equality check predicate on the "manager_user_id" field. It's identical to ManagerUserIDEQ.
+func ManagerUserID(v int64) predicate.Account {
+	return predicate.Account(sql.FieldEQ(FieldManagerUserID, v))
+}
+
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
 func Name(v string) predicate.Account {
 	return predicate.Account(sql.FieldEQ(FieldName, v))
@@ -323,6 +328,56 @@ func DeletedAtIsNil() predicate.Account {
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.Account {
 	return predicate.Account(sql.FieldNotNull(FieldDeletedAt))
+}
+
+// ManagerUserIDEQ applies the EQ predicate on the "manager_user_id" field.
+func ManagerUserIDEQ(v int64) predicate.Account {
+	return predicate.Account(sql.FieldEQ(FieldManagerUserID, v))
+}
+
+// ManagerUserIDNEQ applies the NEQ predicate on the "manager_user_id" field.
+func ManagerUserIDNEQ(v int64) predicate.Account {
+	return predicate.Account(sql.FieldNEQ(FieldManagerUserID, v))
+}
+
+// ManagerUserIDIn applies the In predicate on the "manager_user_id" field.
+func ManagerUserIDIn(vs ...int64) predicate.Account {
+	return predicate.Account(sql.FieldIn(FieldManagerUserID, vs...))
+}
+
+// ManagerUserIDNotIn applies the NotIn predicate on the "manager_user_id" field.
+func ManagerUserIDNotIn(vs ...int64) predicate.Account {
+	return predicate.Account(sql.FieldNotIn(FieldManagerUserID, vs...))
+}
+
+// ManagerUserIDGT applies the GT predicate on the "manager_user_id" field.
+func ManagerUserIDGT(v int64) predicate.Account {
+	return predicate.Account(sql.FieldGT(FieldManagerUserID, v))
+}
+
+// ManagerUserIDGTE applies the GTE predicate on the "manager_user_id" field.
+func ManagerUserIDGTE(v int64) predicate.Account {
+	return predicate.Account(sql.FieldGTE(FieldManagerUserID, v))
+}
+
+// ManagerUserIDLT applies the LT predicate on the "manager_user_id" field.
+func ManagerUserIDLT(v int64) predicate.Account {
+	return predicate.Account(sql.FieldLT(FieldManagerUserID, v))
+}
+
+// ManagerUserIDLTE applies the LTE predicate on the "manager_user_id" field.
+func ManagerUserIDLTE(v int64) predicate.Account {
+	return predicate.Account(sql.FieldLTE(FieldManagerUserID, v))
+}
+
+// ManagerUserIDIsNil applies the IsNil predicate on the "manager_user_id" field.
+func ManagerUserIDIsNil() predicate.Account {
+	return predicate.Account(sql.FieldIsNull(FieldManagerUserID))
+}
+
+// ManagerUserIDNotNil applies the NotNil predicate on the "manager_user_id" field.
+func ManagerUserIDNotNil() predicate.Account {
+	return predicate.Account(sql.FieldNotNull(FieldManagerUserID))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.

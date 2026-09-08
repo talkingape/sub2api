@@ -114,6 +114,7 @@ func NewAccountHandler(
 
 // CreateAccountRequest represents create account request
 type CreateAccountRequest struct {
+	ManagerUserID           *int64         `json:"manager_user_id" binding:"omitempty,gte=0"`
 	Name                    string         `json:"name" binding:"required"`
 	Notes                   *string        `json:"notes"`
 	Platform                string         `json:"platform" binding:"required"`
@@ -135,6 +136,7 @@ type CreateAccountRequest struct {
 // UpdateAccountRequest represents update account request
 // 使用指针类型来区分"未提供"和"设置为0"
 type UpdateAccountRequest struct {
+	ManagerUserID           *int64         `json:"manager_user_id" binding:"omitempty,gte=0"`
 	Name                    string         `json:"name"`
 	Notes                   *string        `json:"notes"`
 	Type                    string         `json:"type" binding:"omitempty,oneof=oauth setup-token apikey upstream bedrock service_account"`
@@ -998,6 +1000,9 @@ func (h *AccountHandler) Create(c *gin.Context) {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
 	}
+	if !validateResourceManagerRequest(c, h.adminService, req.ManagerUserID) {
+		return
+	}
 	if err := service.ValidateOpenAILongContextBillingExtra(req.Platform, req.Extra); err != nil {
 		response.ErrorFrom(c, err)
 		return
@@ -1022,6 +1027,7 @@ func (h *AccountHandler) Create(c *gin.Context) {
 
 	result, err := executeAdminIdempotent(c, "admin.accounts.create", req, service.DefaultWriteIdempotencyTTL(), func(ctx context.Context) (any, error) {
 		account, execErr := h.adminService.CreateAccount(ctx, &service.CreateAccountInput{
+			ManagerUserID:         req.ManagerUserID,
 			Name:                  req.Name,
 			Notes:                 req.Notes,
 			Platform:              req.Platform,
@@ -1139,6 +1145,9 @@ func (h *AccountHandler) Update(c *gin.Context) {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
 	}
+	if !validateResourceManagerRequest(c, h.adminService, req.ManagerUserID) {
+		return
+	}
 	if req.RateMultiplier != nil && *req.RateMultiplier < 0 {
 		response.BadRequest(c, "rate_multiplier must be >= 0")
 		return
@@ -1154,6 +1163,7 @@ func (h *AccountHandler) Update(c *gin.Context) {
 	skipCheck := req.ConfirmMixedChannelRisk != nil && *req.ConfirmMixedChannelRisk
 
 	account, err := h.adminService.UpdateAccount(c.Request.Context(), accountID, &service.UpdateAccountInput{
+		ManagerUserID:         req.ManagerUserID,
 		Name:                  req.Name,
 		Notes:                 req.Notes,
 		Type:                  req.Type,

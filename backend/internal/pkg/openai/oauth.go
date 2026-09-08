@@ -41,9 +41,12 @@ const (
 
 // OAuthSession stores OAuth flow state for OpenAI
 type OAuthSession struct {
+	ActorUserID  int64     `json:"actor_user_id,omitempty"`
+	Purpose      string    `json:"purpose,omitempty"`
 	State        string    `json:"state"`
 	CodeVerifier string    `json:"code_verifier"`
 	ClientID     string    `json:"client_id,omitempty"`
+	ProxyID      *int64    `json:"proxy_id,omitempty"`
 	ProxyURL     string    `json:"proxy_url,omitempty"`
 	RedirectURI  string    `json:"redirect_uri"`
 	CreatedAt    time.Time `json:"created_at"`
@@ -87,6 +90,19 @@ func (s *SessionStore) Get(sessionID string) (*OAuthSession, bool) {
 	if time.Since(session.CreatedAt) > SessionTTL {
 		return nil, false
 	}
+	return session, true
+}
+
+// Consume atomically removes a validated session before exchanging its code.
+// A failed exchange requires starting a new flow; concurrent replay cannot reuse it.
+func (s *SessionStore) Consume(sessionID string, validate func(*OAuthSession) bool) (*OAuthSession, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	session, ok := s.sessions[sessionID]
+	if !ok || time.Since(session.CreatedAt) > SessionTTL || !validate(session) {
+		return nil, false
+	}
+	delete(s.sessions, sessionID)
 	return session, true
 }
 

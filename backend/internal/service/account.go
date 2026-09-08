@@ -21,6 +21,7 @@ import (
 )
 
 type Account struct {
+	ManagerUserID           *int64
 	ID                      int64
 	Name                    string
 	Notes                   *string

@@ -165,6 +165,8 @@ type Group struct {
 // AdminGroup 是管理员接口使用的 group DTO（包含敏感/内部字段）。
 // 注意：普通用户接口不得返回 model_routing/account_count/account_groups 等内部信息。
 type AdminGroup struct {
+	ManagerUserID             *int64 `json:"manager_user_id"`
+	AllowOperatorContribution bool   `json:"allow_operator_contribution"`
 	Group
 	// ForceOpenAIFast 是管理端请求策略，用户侧分组 DTO 无需暴露。
 	ForceOpenAIFast bool `json:"force_openai_fast"`
@@ -205,11 +207,12 @@ type AdminGroup struct {
 }
 
 type Account struct {
-	ID       int64   `json:"id"`
-	Name     string  `json:"name"`
-	Notes    *string `json:"notes"`
-	Platform string  `json:"platform"`
-	Type     string  `json:"type"`
+	ManagerUserID *int64  `json:"manager_user_id"`
+	ID            int64   `json:"id"`
+	Name          string  `json:"name"`
+	Notes         *string `json:"notes"`
+	Platform      string  `json:"platform"`
+	Type          string  `json:"type"`
 	// Credentials 经 RedactCredentials 处理后只含非敏感子键；敏感 token / api_key / 私钥
 	// 的存在性通过 CredentialsStatus（has_<key>）暴露，原始值不返回前端。
 	Credentials             map[string]any                 `json:"credentials"`

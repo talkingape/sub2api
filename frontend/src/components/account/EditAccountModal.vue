@@ -16,6 +16,10 @@
         <input v-model="form.name" type="text" required class="input" data-tour="edit-account-form-name" />
       </div>
       <div>
+        <label class="input-label">账号负责人用户 ID（0 表示仅管理员）</label>
+        <input v-model.number="form.manager_user_id" type="number" min="0" step="1" class="input" />
+      </div>
+      <div>
         <label class="input-label">{{ t('admin.accounts.notes') }}</label>
         <textarea
           v-model="form.notes"
@@ -3650,6 +3654,7 @@ const mixedChannelWarningMessageText = computed(() => {
 })
 
 const form = reactive({
+  manager_user_id: 0,
   name: '',
   notes: '',
   proxy_id: null as number | null,
@@ -3758,6 +3763,7 @@ const syncFormFromAccount = (newAccount: Account | null) => {
   mixedChannelWarningDetails.value = null
   mixedChannelWarningRawMessage.value = ''
   mixedChannelWarningAction.value = null
+  form.manager_user_id = newAccount.manager_user_id ?? 0
   form.name = newAccount.name
   form.notes = newAccount.notes || ''
   form.proxy_id = newAccount.proxy_id

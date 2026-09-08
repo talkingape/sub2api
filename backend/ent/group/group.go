@@ -22,6 +22,10 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
+	// FieldManagerUserID holds the string denoting the manager_user_id field in the database.
+	FieldManagerUserID = "manager_user_id"
+	// FieldAllowOperatorContribution holds the string denoting the allow_operator_contribution field in the database.
+	FieldAllowOperatorContribution = "allow_operator_contribution"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
@@ -226,6 +230,8 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
+	FieldManagerUserID,
+	FieldAllowOperatorContribution,
 	FieldName,
 	FieldDescription,
 	FieldRateMultiplier,
@@ -324,6 +330,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultAllowOperatorContribution holds the default value on creation for the "allow_operator_contribution" field.
+	DefaultAllowOperatorContribution bool
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
 	// DefaultRateMultiplier holds the default value on creation for the "rate_multiplier" field.
@@ -457,6 +465,16 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
+}
+
+// ByManagerUserID orders the results by the manager_user_id field.
+func ByManagerUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldManagerUserID, opts...).ToFunc()
+}
+
+// ByAllowOperatorContribution orders the results by the allow_operator_contribution field.
+func ByAllowOperatorContribution(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAllowOperatorContribution, opts...).ToFunc()
 }
 
 // ByName orders the results by the name field.

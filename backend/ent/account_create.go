@@ -67,6 +67,20 @@ func (_c *AccountCreate) SetNillableDeletedAt(v *time.Time) *AccountCreate {
 	return _c
 }
 
+// SetManagerUserID sets the "manager_user_id" field.
+func (_c *AccountCreate) SetManagerUserID(v int64) *AccountCreate {
+	_c.mutation.SetManagerUserID(v)
+	return _c
+}
+
+// SetNillableManagerUserID sets the "manager_user_id" field if the given value is not nil.
+func (_c *AccountCreate) SetNillableManagerUserID(v *int64) *AccountCreate {
+	if v != nil {
+		_c.SetManagerUserID(*v)
+	}
+	return _c
+}
+
 // SetName sets the "name" field.
 func (_c *AccountCreate) SetName(v string) *AccountCreate {
 	_c.mutation.SetName(v)
@@ -697,6 +711,10 @@ func (_c *AccountCreate) createSpec() (*Account, *sqlgraph.CreateSpec) {
 		_spec.SetField(account.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
+	if value, ok := _c.mutation.ManagerUserID(); ok {
+		_spec.SetField(account.FieldManagerUserID, field.TypeInt64, value)
+		_node.ManagerUserID = &value
+	}
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(account.FieldName, field.TypeString, value)
 		_node.Name = value
@@ -966,6 +984,30 @@ func (u *AccountUpsert) UpdateDeletedAt() *AccountUpsert {
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *AccountUpsert) ClearDeletedAt() *AccountUpsert {
 	u.SetNull(account.FieldDeletedAt)
+	return u
+}
+
+// SetManagerUserID sets the "manager_user_id" field.
+func (u *AccountUpsert) SetManagerUserID(v int64) *AccountUpsert {
+	u.Set(account.FieldManagerUserID, v)
+	return u
+}
+
+// UpdateManagerUserID sets the "manager_user_id" field to the value that was provided on create.
+func (u *AccountUpsert) UpdateManagerUserID() *AccountUpsert {
+	u.SetExcluded(account.FieldManagerUserID)
+	return u
+}
+
+// AddManagerUserID adds v to the "manager_user_id" field.
+func (u *AccountUpsert) AddManagerUserID(v int64) *AccountUpsert {
+	u.Add(account.FieldManagerUserID, v)
+	return u
+}
+
+// ClearManagerUserID clears the value of the "manager_user_id" field.
+func (u *AccountUpsert) ClearManagerUserID() *AccountUpsert {
+	u.SetNull(account.FieldManagerUserID)
 	return u
 }
 
@@ -1508,6 +1550,34 @@ func (u *AccountUpsertOne) UpdateDeletedAt() *AccountUpsertOne {
 func (u *AccountUpsertOne) ClearDeletedAt() *AccountUpsertOne {
 	return u.Update(func(s *AccountUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetManagerUserID sets the "manager_user_id" field.
+func (u *AccountUpsertOne) SetManagerUserID(v int64) *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.SetManagerUserID(v)
+	})
+}
+
+// AddManagerUserID adds v to the "manager_user_id" field.
+func (u *AccountUpsertOne) AddManagerUserID(v int64) *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.AddManagerUserID(v)
+	})
+}
+
+// UpdateManagerUserID sets the "manager_user_id" field to the value that was provided on create.
+func (u *AccountUpsertOne) UpdateManagerUserID() *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.UpdateManagerUserID()
+	})
+}
+
+// ClearManagerUserID clears the value of the "manager_user_id" field.
+func (u *AccountUpsertOne) ClearManagerUserID() *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.ClearManagerUserID()
 	})
 }
 
@@ -2293,6 +2363,34 @@ func (u *AccountUpsertBulk) UpdateDeletedAt() *AccountUpsertBulk {
 func (u *AccountUpsertBulk) ClearDeletedAt() *AccountUpsertBulk {
 	return u.Update(func(s *AccountUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetManagerUserID sets the "manager_user_id" field.
+func (u *AccountUpsertBulk) SetManagerUserID(v int64) *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.SetManagerUserID(v)
+	})
+}
+
+// AddManagerUserID adds v to the "manager_user_id" field.
+func (u *AccountUpsertBulk) AddManagerUserID(v int64) *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.AddManagerUserID(v)
+	})
+}
+
+// UpdateManagerUserID sets the "manager_user_id" field to the value that was provided on create.
+func (u *AccountUpsertBulk) UpdateManagerUserID() *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.UpdateManagerUserID()
+	})
+}
+
+// ClearManagerUserID clears the value of the "manager_user_id" field.
+func (u *AccountUpsertBulk) ClearManagerUserID() *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.ClearManagerUserID()
 	})
 }
 

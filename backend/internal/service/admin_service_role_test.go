@@ -141,3 +141,35 @@ func TestAdminService_UpdateUser_PromoteDoesNotCountAdmins(t *testing.T) {
 	require.Equal(t, RoleAdmin, updated.Role)
 	require.Equal(t, 0, repo.listCalls, "升级路径不应触发管理员计数")
 }
+
+func TestAdminService_CreateUser_WithOperatorRole(t *testing.T) {
+	repo := &userRepoStub{nextID: 33}
+	svc := &adminServiceImpl{userRepo: repo}
+	user, err := svc.CreateUser(context.Background(), &CreateUserInput{Email: "operator@test.com", Password: "strong-pass", Role: RoleOperator})
+	require.NoError(t, err)
+	require.Equal(t, RoleOperator, user.Role)
+}
+
+func TestAdminService_UpdateUser_OperatorRoleTransitions(t *testing.T) {
+	for _, from := range []string{RoleAdmin, RoleUser, RoleOperator} {
+		for _, to := range []string{RoleOperator, RoleUser} {
+			t.Run(from+"-to-"+to, func(t *testing.T) {
+				base := &userRepoStub{user: &User{ID: 42, Email: "u@example.com", Role: from}}
+				repo := &roleGuardUserRepoStub{rpmUserRepoStub: &rpmUserRepoStub{userRepoStub: base}, adminTotal: 1}
+				invalidator := &authCacheInvalidatorStub{}
+				svc := &adminServiceImpl{userRepo: repo, redeemCodeRepo: &redeemRepoStub{}, authCacheInvalidator: invalidator}
+				updated, err := svc.UpdateUser(context.Background(), 42, &UpdateUserInput{Role: to})
+				if from == RoleAdmin {
+					require.ErrorContains(t, err, "last admin")
+					require.Nil(t, repo.lastUpdated)
+				} else {
+					require.NoError(t, err)
+					require.Equal(t, to, updated.Role)
+					if from != to {
+						require.Equal(t, []int64{42}, invalidator.userIDs)
+					}
+				}
+			})
+		}
+	}
+}

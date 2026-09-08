@@ -2288,6 +2288,8 @@ type AccountMutation struct {
 	created_at                  *time.Time
 	updated_at                  *time.Time
 	deleted_at                  *time.Time
+	manager_user_id             *int64
+	addmanager_user_id          *int64
 	name                        *string
 	notes                       *string
 	platform                    *string
@@ -2555,6 +2557,76 @@ func (m *AccountMutation) DeletedAtCleared() bool {
 func (m *AccountMutation) ResetDeletedAt() {
 	m.deleted_at = nil
 	delete(m.clearedFields, account.FieldDeletedAt)
+}
+
+// SetManagerUserID sets the "manager_user_id" field.
+func (m *AccountMutation) SetManagerUserID(i int64) {
+	m.manager_user_id = &i
+	m.addmanager_user_id = nil
+}
+
+// ManagerUserID returns the value of the "manager_user_id" field in the mutation.
+func (m *AccountMutation) ManagerUserID() (r int64, exists bool) {
+	v := m.manager_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldManagerUserID returns the old "manager_user_id" field's value of the Account entity.
+// If the Account object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AccountMutation) OldManagerUserID(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldManagerUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldManagerUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldManagerUserID: %w", err)
+	}
+	return oldValue.ManagerUserID, nil
+}
+
+// AddManagerUserID adds i to the "manager_user_id" field.
+func (m *AccountMutation) AddManagerUserID(i int64) {
+	if m.addmanager_user_id != nil {
+		*m.addmanager_user_id += i
+	} else {
+		m.addmanager_user_id = &i
+	}
+}
+
+// AddedManagerUserID returns the value that was added to the "manager_user_id" field in this mutation.
+func (m *AccountMutation) AddedManagerUserID() (r int64, exists bool) {
+	v := m.addmanager_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearManagerUserID clears the value of the "manager_user_id" field.
+func (m *AccountMutation) ClearManagerUserID() {
+	m.manager_user_id = nil
+	m.addmanager_user_id = nil
+	m.clearedFields[account.FieldManagerUserID] = struct{}{}
+}
+
+// ManagerUserIDCleared returns if the "manager_user_id" field was cleared in this mutation.
+func (m *AccountMutation) ManagerUserIDCleared() bool {
+	_, ok := m.clearedFields[account.FieldManagerUserID]
+	return ok
+}
+
+// ResetManagerUserID resets all changes to the "manager_user_id" field.
+func (m *AccountMutation) ResetManagerUserID() {
+	m.manager_user_id = nil
+	m.addmanager_user_id = nil
+	delete(m.clearedFields, account.FieldManagerUserID)
 }
 
 // SetName sets the "name" field.
@@ -4138,7 +4210,7 @@ func (m *AccountMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AccountMutation) Fields() []string {
-	fields := make([]string, 0, 31)
+	fields := make([]string, 0, 32)
 	if m.created_at != nil {
 		fields = append(fields, account.FieldCreatedAt)
 	}
@@ -4147,6 +4219,9 @@ func (m *AccountMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, account.FieldDeletedAt)
+	}
+	if m.manager_user_id != nil {
+		fields = append(fields, account.FieldManagerUserID)
 	}
 	if m.name != nil {
 		fields = append(fields, account.FieldName)
@@ -4246,6 +4321,8 @@ func (m *AccountMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case account.FieldDeletedAt:
 		return m.DeletedAt()
+	case account.FieldManagerUserID:
+		return m.ManagerUserID()
 	case account.FieldName:
 		return m.Name()
 	case account.FieldNotes:
@@ -4317,6 +4394,8 @@ func (m *AccountMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldUpdatedAt(ctx)
 	case account.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case account.FieldManagerUserID:
+		return m.OldManagerUserID(ctx)
 	case account.FieldName:
 		return m.OldName(ctx)
 	case account.FieldNotes:
@@ -4402,6 +4481,13 @@ func (m *AccountMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
+		return nil
+	case account.FieldManagerUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetManagerUserID(v)
 		return nil
 	case account.FieldName:
 		v, ok := value.(string)
@@ -4607,6 +4693,9 @@ func (m *AccountMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *AccountMutation) AddedFields() []string {
 	var fields []string
+	if m.addmanager_user_id != nil {
+		fields = append(fields, account.FieldManagerUserID)
+	}
 	if m.addproxy_fallback_origin_id != nil {
 		fields = append(fields, account.FieldProxyFallbackOriginID)
 	}
@@ -4630,6 +4719,8 @@ func (m *AccountMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *AccountMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case account.FieldManagerUserID:
+		return m.AddedManagerUserID()
 	case account.FieldProxyFallbackOriginID:
 		return m.AddedProxyFallbackOriginID()
 	case account.FieldConcurrency:
@@ -4649,6 +4740,13 @@ func (m *AccountMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *AccountMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case account.FieldManagerUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddManagerUserID(v)
+		return nil
 	case account.FieldProxyFallbackOriginID:
 		v, ok := value.(int64)
 		if !ok {
@@ -4694,6 +4792,9 @@ func (m *AccountMutation) ClearedFields() []string {
 	var fields []string
 	if m.FieldCleared(account.FieldDeletedAt) {
 		fields = append(fields, account.FieldDeletedAt)
+	}
+	if m.FieldCleared(account.FieldManagerUserID) {
+		fields = append(fields, account.FieldManagerUserID)
 	}
 	if m.FieldCleared(account.FieldNotes) {
 		fields = append(fields, account.FieldNotes)
@@ -4760,6 +4861,9 @@ func (m *AccountMutation) ClearField(name string) error {
 	case account.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
+	case account.FieldManagerUserID:
+		m.ClearManagerUserID()
+		return nil
 	case account.FieldNotes:
 		m.ClearNotes()
 		return nil
@@ -4824,6 +4928,9 @@ func (m *AccountMutation) ResetField(name string) error {
 		return nil
 	case account.FieldDeletedAt:
 		m.ResetDeletedAt()
+		return nil
+	case account.FieldManagerUserID:
+		m.ResetManagerUserID()
 		return nil
 	case account.FieldName:
 		m.ResetName()
@@ -22084,6 +22191,9 @@ type GroupMutation struct {
 	created_at                              *time.Time
 	updated_at                              *time.Time
 	deleted_at                              *time.Time
+	manager_user_id                         *int64
+	addmanager_user_id                      *int64
+	allow_operator_contribution             *bool
 	name                                    *string
 	description                             *string
 	rate_multiplier                         *float64
@@ -22418,6 +22528,112 @@ func (m *GroupMutation) DeletedAtCleared() bool {
 func (m *GroupMutation) ResetDeletedAt() {
 	m.deleted_at = nil
 	delete(m.clearedFields, group.FieldDeletedAt)
+}
+
+// SetManagerUserID sets the "manager_user_id" field.
+func (m *GroupMutation) SetManagerUserID(i int64) {
+	m.manager_user_id = &i
+	m.addmanager_user_id = nil
+}
+
+// ManagerUserID returns the value of the "manager_user_id" field in the mutation.
+func (m *GroupMutation) ManagerUserID() (r int64, exists bool) {
+	v := m.manager_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldManagerUserID returns the old "manager_user_id" field's value of the Group entity.
+// If the Group object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupMutation) OldManagerUserID(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldManagerUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldManagerUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldManagerUserID: %w", err)
+	}
+	return oldValue.ManagerUserID, nil
+}
+
+// AddManagerUserID adds i to the "manager_user_id" field.
+func (m *GroupMutation) AddManagerUserID(i int64) {
+	if m.addmanager_user_id != nil {
+		*m.addmanager_user_id += i
+	} else {
+		m.addmanager_user_id = &i
+	}
+}
+
+// AddedManagerUserID returns the value that was added to the "manager_user_id" field in this mutation.
+func (m *GroupMutation) AddedManagerUserID() (r int64, exists bool) {
+	v := m.addmanager_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearManagerUserID clears the value of the "manager_user_id" field.
+func (m *GroupMutation) ClearManagerUserID() {
+	m.manager_user_id = nil
+	m.addmanager_user_id = nil
+	m.clearedFields[group.FieldManagerUserID] = struct{}{}
+}
+
+// ManagerUserIDCleared returns if the "manager_user_id" field was cleared in this mutation.
+func (m *GroupMutation) ManagerUserIDCleared() bool {
+	_, ok := m.clearedFields[group.FieldManagerUserID]
+	return ok
+}
+
+// ResetManagerUserID resets all changes to the "manager_user_id" field.
+func (m *GroupMutation) ResetManagerUserID() {
+	m.manager_user_id = nil
+	m.addmanager_user_id = nil
+	delete(m.clearedFields, group.FieldManagerUserID)
+}
+
+// SetAllowOperatorContribution sets the "allow_operator_contribution" field.
+func (m *GroupMutation) SetAllowOperatorContribution(b bool) {
+	m.allow_operator_contribution = &b
+}
+
+// AllowOperatorContribution returns the value of the "allow_operator_contribution" field in the mutation.
+func (m *GroupMutation) AllowOperatorContribution() (r bool, exists bool) {
+	v := m.allow_operator_contribution
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAllowOperatorContribution returns the old "allow_operator_contribution" field's value of the Group entity.
+// If the Group object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupMutation) OldAllowOperatorContribution(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAllowOperatorContribution is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAllowOperatorContribution requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAllowOperatorContribution: %w", err)
+	}
+	return oldValue.AllowOperatorContribution, nil
+}
+
+// ResetAllowOperatorContribution resets all changes to the "allow_operator_contribution" field.
+func (m *GroupMutation) ResetAllowOperatorContribution() {
+	m.allow_operator_contribution = nil
 }
 
 // SetName sets the "name" field.
@@ -25921,7 +26137,7 @@ func (m *GroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GroupMutation) Fields() []string {
-	fields := make([]string, 0, 66)
+	fields := make([]string, 0, 68)
 	if m.created_at != nil {
 		fields = append(fields, group.FieldCreatedAt)
 	}
@@ -25930,6 +26146,12 @@ func (m *GroupMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, group.FieldDeletedAt)
+	}
+	if m.manager_user_id != nil {
+		fields = append(fields, group.FieldManagerUserID)
+	}
+	if m.allow_operator_contribution != nil {
+		fields = append(fields, group.FieldAllowOperatorContribution)
 	}
 	if m.name != nil {
 		fields = append(fields, group.FieldName)
@@ -26134,6 +26356,10 @@ func (m *GroupMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case group.FieldDeletedAt:
 		return m.DeletedAt()
+	case group.FieldManagerUserID:
+		return m.ManagerUserID()
+	case group.FieldAllowOperatorContribution:
+		return m.AllowOperatorContribution()
 	case group.FieldName:
 		return m.Name()
 	case group.FieldDescription:
@@ -26275,6 +26501,10 @@ func (m *GroupMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldUpdatedAt(ctx)
 	case group.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case group.FieldManagerUserID:
+		return m.OldManagerUserID(ctx)
+	case group.FieldAllowOperatorContribution:
+		return m.OldAllowOperatorContribution(ctx)
 	case group.FieldName:
 		return m.OldName(ctx)
 	case group.FieldDescription:
@@ -26430,6 +26660,20 @@ func (m *GroupMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
+		return nil
+	case group.FieldManagerUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetManagerUserID(v)
+		return nil
+	case group.FieldAllowOperatorContribution:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAllowOperatorContribution(v)
 		return nil
 	case group.FieldName:
 		v, ok := value.(string)
@@ -26880,6 +27124,9 @@ func (m *GroupMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *GroupMutation) AddedFields() []string {
 	var fields []string
+	if m.addmanager_user_id != nil {
+		fields = append(fields, group.FieldManagerUserID)
+	}
 	if m.addrate_multiplier != nil {
 		fields = append(fields, group.FieldRateMultiplier)
 	}
@@ -26969,6 +27216,8 @@ func (m *GroupMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *GroupMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case group.FieldManagerUserID:
+		return m.AddedManagerUserID()
 	case group.FieldRateMultiplier:
 		return m.AddedRateMultiplier()
 	case group.FieldPeakRateMultiplier:
@@ -27032,6 +27281,13 @@ func (m *GroupMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *GroupMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case group.FieldManagerUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddManagerUserID(v)
+		return nil
 	case group.FieldRateMultiplier:
 		v, ok := value.(float64)
 		if !ok {
@@ -27232,6 +27488,9 @@ func (m *GroupMutation) ClearedFields() []string {
 	if m.FieldCleared(group.FieldDeletedAt) {
 		fields = append(fields, group.FieldDeletedAt)
 	}
+	if m.FieldCleared(group.FieldManagerUserID) {
+		fields = append(fields, group.FieldManagerUserID)
+	}
 	if m.FieldCleared(group.FieldDescription) {
 		fields = append(fields, group.FieldDescription)
 	}
@@ -27312,6 +27571,9 @@ func (m *GroupMutation) ClearField(name string) error {
 	case group.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
+	case group.FieldManagerUserID:
+		m.ClearManagerUserID()
+		return nil
 	case group.FieldDescription:
 		m.ClearDescription()
 		return nil
@@ -27391,6 +27653,12 @@ func (m *GroupMutation) ResetField(name string) error {
 		return nil
 	case group.FieldDeletedAt:
 		m.ResetDeletedAt()
+		return nil
+	case group.FieldManagerUserID:
+		m.ResetManagerUserID()
+		return nil
+	case group.FieldAllowOperatorContribution:
+		m.ResetAllowOperatorContribution()
 		return nil
 	case group.FieldName:
 		m.ResetName()
