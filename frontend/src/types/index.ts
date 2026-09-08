@@ -84,7 +84,7 @@ export interface User {
   linuxdo_bound?: boolean
   oidc_bound?: boolean
   wechat_bound?: boolean
-  role: 'admin' | 'user' // User role for authorization
+  role: 'admin' | 'user' | 'operator' // User role for authorization
   balance: number // User balance for API usage
   frozen_balance?: number // Balance currently held by async batch jobs
   concurrency: number // Allowed concurrent requests
@@ -561,6 +561,8 @@ export interface ReasoningEffortMapping {
 }
 
 export interface Group {
+  allow_operator_contribution?: boolean
+  manager_user_id?: number | null
   id: number
   name: string
   description: string | null
@@ -787,6 +789,8 @@ export interface UpdateApiKeyRequest {
 }
 
 export interface CreateGroupRequest {
+  allow_operator_contribution?: boolean
+  manager_user_id?: number | null
   name: string
   description?: string | null
   platform?: GroupPlatform
@@ -852,6 +856,8 @@ export interface CreateGroupRequest {
 }
 
 export interface UpdateGroupRequest {
+  allow_operator_contribution?: boolean
+  manager_user_id?: number | null
   name?: string
   description?: string | null
   platform?: GroupPlatform
@@ -1156,6 +1162,7 @@ export interface OllamaCloudUsageSettings {
 }
 
 export interface Account {
+  manager_user_id?: number | null
   id: number
   name: string
   notes?: string | null
@@ -1471,6 +1478,7 @@ export interface OpenAIResponsesState {
 }
 
 export interface CreateAccountRequest {
+  manager_user_id?: number | null
   name: string
   notes?: string | null
   platform: AccountPlatform
@@ -1490,6 +1498,7 @@ export interface CreateAccountRequest {
 }
 
 export interface UpdateAccountRequest {
+  manager_user_id?: number | null
   name?: string
   notes?: string | null
   type?: AccountType
@@ -2028,7 +2037,7 @@ export interface UpdateUserRequest {
   password?: string
   username?: string
   notes?: string
-  role?: 'admin' | 'user'
+  role?: 'admin' | 'user' | 'operator'
   balance?: number
   concurrency?: number
   rpm_limit?: number

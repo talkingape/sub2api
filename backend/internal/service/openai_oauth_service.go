@@ -43,6 +43,20 @@ type OpenAIAuthURLResult struct {
 
 // GenerateAuthURL generates an OpenAI OAuth authorization URL
 func (s *OpenAIOAuthService) GenerateAuthURL(ctx context.Context, proxyID *int64, redirectURI, platform string) (*OpenAIAuthURLResult, error) {
+	return s.generateAuthURL(ctx, proxyID, redirectURI, platform, 0, "")
+}
+
+const operatorOAuthPurpose = "operator_account_create"
+
+// GenerateOperatorAuthURL starts an actor-bound flow with a fixed redirect URI.
+func (s *OpenAIOAuthService) GenerateOperatorAuthURL(ctx context.Context, userID int64, proxyID *int64) (*OpenAIAuthURLResult, error) {
+	if userID <= 0 {
+		return nil, infraerrors.New(http.StatusForbidden, "OPENAI_OAUTH_ACTOR_REQUIRED", "operator identity is required")
+	}
+	return s.generateAuthURL(ctx, proxyID, "", PlatformOpenAI, userID, operatorOAuthPurpose)
+}
+
+func (s *OpenAIOAuthService) generateAuthURL(ctx context.Context, proxyID *int64, redirectURI, platform string, actorUserID int64, purpose string) (*OpenAIAuthURLResult, error) {
 	// Generate PKCE values
 	state, err := openai.GenerateState()
 	if err != nil {
@@ -81,13 +95,21 @@ func (s *OpenAIOAuthService) GenerateAuthURL(ctx context.Context, proxyID *int64
 	normalizedPlatform := normalizeOpenAIOAuthPlatform(platform)
 	clientID, _ := openai.OAuthClientConfigByPlatform(normalizedPlatform)
 
-	// Store session
+	// Store session. Copy the ID so caller mutation cannot change its binding.
+	var sessionProxyID *int64
+	if proxyID != nil {
+		id := *proxyID
+		sessionProxyID = &id
+	}
 	session := &openai.OAuthSession{
+		ActorUserID:  actorUserID,
+		Purpose:      purpose,
 		State:        state,
 		CodeVerifier: codeVerifier,
 		ClientID:     clientID,
 		RedirectURI:  redirectURI,
 		ProxyURL:     proxyURL,
+		ProxyID:      sessionProxyID,
 		CreatedAt:    time.Now(),
 	}
 	s.sessionStore.Set(sessionID, session)
@@ -136,6 +158,9 @@ func (s *OpenAIOAuthService) ExchangeCode(ctx context.Context, input *OpenAIExch
 	if !ok {
 		return nil, infraerrors.New(http.StatusBadRequest, "OPENAI_OAUTH_SESSION_NOT_FOUND", "session not found or expired")
 	}
+	if session.Purpose != "" || session.ActorUserID != 0 {
+		return nil, infraerrors.New(http.StatusForbidden, "OPENAI_OAUTH_SESSION_SCOPE", "session belongs to a different oauth flow")
+	}
 	if input.State == "" {
 		return nil, infraerrors.New(http.StatusBadRequest, "OPENAI_OAUTH_STATE_REQUIRED", "oauth state is required")
 	}
@@ -160,6 +185,30 @@ func (s *OpenAIOAuthService) ExchangeCode(ctx context.Context, input *OpenAIExch
 	if input.RedirectURI != "" {
 		redirectURI = input.RedirectURI
 	}
+	return s.exchangeSessionCode(ctx, input, session, redirectURI, proxyURL)
+}
+
+// ExchangeOperatorCode consumes only this operator's flow, without client overrides.
+func (s *OpenAIOAuthService) ExchangeOperatorCode(ctx context.Context, userID int64, input *OpenAIExchangeCodeInput) (*OpenAITokenInfo, error) {
+	if input == nil || userID <= 0 || strings.TrimSpace(input.Code) == "" || input.State == "" {
+		return nil, infraerrors.New(http.StatusBadRequest, "OPENAI_OAUTH_INVALID_INPUT", "code, state and operator identity are required")
+	}
+	if input.RedirectURI != "" {
+		return nil, infraerrors.New(http.StatusBadRequest, "OPENAI_OAUTH_SESSION_OVERRIDE", "proxy and redirect cannot be overridden; restart authorization")
+	}
+	session, ok := s.sessionStore.Consume(input.SessionID, func(session *openai.OAuthSession) bool {
+		proxyMatches := (session.ProxyID == nil && input.ProxyID == nil) ||
+			(session.ProxyID != nil && input.ProxyID != nil && *session.ProxyID == *input.ProxyID)
+		return proxyMatches && session.ActorUserID == userID && session.Purpose == operatorOAuthPurpose &&
+			subtle.ConstantTimeCompare([]byte(input.State), []byte(session.State)) == 1
+	})
+	if !ok {
+		return nil, infraerrors.New(http.StatusBadRequest, "OPENAI_OAUTH_INVALID_SESSION", "session is invalid, expired or consumed; restart authorization")
+	}
+	return s.exchangeSessionCode(ctx, input, session, session.RedirectURI, session.ProxyURL)
+}
+
+func (s *OpenAIOAuthService) exchangeSessionCode(ctx context.Context, input *OpenAIExchangeCodeInput, session *openai.OAuthSession, redirectURI, proxyURL string) (*OpenAITokenInfo, error) {
 	clientID := strings.TrimSpace(session.ClientID)
 	if clientID == "" {
 		clientID = openai.ClientID

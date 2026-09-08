@@ -233,6 +233,8 @@ type AdminBoundAuthIdentityChannel struct {
 }
 
 type CreateGroupInput struct {
+	ManagerUserID             *int64
+	AllowOperatorContribution bool
 	Name                      string
 	Description               string
 	Platform                  string
@@ -313,6 +315,8 @@ type CreateGroupInput struct {
 }
 
 type UpdateGroupInput struct {
+	ManagerUserID             *int64
+	AllowOperatorContribution *bool
 	Name                      string
 	Description               *string
 	Platform                  string
@@ -394,6 +398,7 @@ type UpdateGroupInput struct {
 }
 
 type CreateAccountInput struct {
+	ManagerUserID      *int64
 	Name               string
 	Notes              *string
 	Platform           string
@@ -426,6 +431,7 @@ type ShadowOptions struct {
 }
 
 type UpdateAccountInput struct {
+	ManagerUserID         *int64
 	Name                  string
 	Notes                 *string
 	Type                  string // Account type: oauth, setup-token, apikey

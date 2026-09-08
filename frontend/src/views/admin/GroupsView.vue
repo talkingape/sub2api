@@ -488,6 +488,9 @@
         class="space-y-5"
       >
         <div>
+          <label class="input-label">分组负责人用户 ID（0 表示仅管理员）</label>
+          <input v-model.number="createForm.manager_user_id" data-testid="group-manager" type="number" min="0" step="1" class="input mb-3" />
+          <label class="mb-3 flex items-center gap-2"><input v-model="createForm.allow_operator_contribution" data-testid="group-contribution" type="checkbox" />允许其他资源维护者贡献账号</label>
           <label class="input-label">{{ t("admin.groups.form.name") }}</label>
           <input
             v-model="createForm.name"
@@ -2127,6 +2130,9 @@
         class="space-y-5"
       >
         <div>
+          <label class="input-label">分组负责人用户 ID（0 表示仅管理员）</label>
+          <input v-model.number="editForm.manager_user_id" data-testid="group-manager" type="number" min="0" step="1" class="input mb-3" />
+          <label class="mb-3 flex items-center gap-2"><input v-model="editForm.allow_operator_contribution" data-testid="group-contribution" type="checkbox" />允许其他资源维护者贡献账号</label>
           <label class="input-label">{{ t("admin.groups.form.name") }}</label>
           <input
             v-model="editForm.name"
@@ -4929,6 +4935,8 @@ const submitEditAllowlistCustomEntry = () => {
 };
 
 const createForm = reactive({
+  manager_user_id: 0,
+  allow_operator_contribution: false,
   name: "",
   description: "",
   platform: "anthropic" as GroupPlatform,
@@ -5293,6 +5301,8 @@ const convertApiFormatToRoutingRules = async (
 };
 
 const editForm = reactive({
+  manager_user_id: 0,
+  allow_operator_contribution: false,
   name: "",
   description: "",
   platform: "anthropic" as GroupPlatform,
@@ -5756,6 +5766,8 @@ const closeCreateModal = () => {
     accountSearchRunner.clearKey(getCreateRuleSearchKey(rule));
   });
   clearAllAccountSearchState();
+  createForm.manager_user_id = 0;
+  createForm.allow_operator_contribution = false;
   createForm.name = "";
   createForm.description = "";
   createForm.platform = "anthropic";
@@ -6001,6 +6013,8 @@ const handleCreateGroup = async () => {
       ? {
           name: createForm.name,
           description: createForm.description,
+          manager_user_id: createForm.manager_user_id,
+          allow_operator_contribution: createForm.allow_operator_contribution,
           platform: createForm.platform,
         }
       : requestData;
@@ -6025,6 +6039,8 @@ const handleCreateGroup = async () => {
 
 const handleEdit = async (group: AdminGroup) => {
   editingGroup.value = group;
+  editForm.manager_user_id = group.manager_user_id ?? 0;
+  editForm.allow_operator_contribution = group.allow_operator_contribution ?? false;
   editForm.name = group.name;
   editForm.description = group.description || "";
   editForm.platform = group.platform;
@@ -6351,6 +6367,8 @@ const handleUpdateGroup = async () => {
       ? {
           name: editForm.name,
           description: editForm.description,
+          manager_user_id: editForm.manager_user_id,
+          allow_operator_contribution: editForm.allow_operator_contribution,
         }
       : payload;
     await adminAPI.groups.update(editingGroup.value.id, requestData);

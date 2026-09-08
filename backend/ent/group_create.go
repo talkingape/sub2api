@@ -72,6 +72,34 @@ func (_c *GroupCreate) SetNillableDeletedAt(v *time.Time) *GroupCreate {
 	return _c
 }
 
+// SetManagerUserID sets the "manager_user_id" field.
+func (_c *GroupCreate) SetManagerUserID(v int64) *GroupCreate {
+	_c.mutation.SetManagerUserID(v)
+	return _c
+}
+
+// SetNillableManagerUserID sets the "manager_user_id" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableManagerUserID(v *int64) *GroupCreate {
+	if v != nil {
+		_c.SetManagerUserID(*v)
+	}
+	return _c
+}
+
+// SetAllowOperatorContribution sets the "allow_operator_contribution" field.
+func (_c *GroupCreate) SetAllowOperatorContribution(v bool) *GroupCreate {
+	_c.mutation.SetAllowOperatorContribution(v)
+	return _c
+}
+
+// SetNillableAllowOperatorContribution sets the "allow_operator_contribution" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableAllowOperatorContribution(v *bool) *GroupCreate {
+	if v != nil {
+		_c.SetAllowOperatorContribution(*v)
+	}
+	return _c
+}
+
 // SetName sets the "name" field.
 func (_c *GroupCreate) SetName(v string) *GroupCreate {
 	_c.mutation.SetName(v)
@@ -1047,6 +1075,10 @@ func (_c *GroupCreate) defaults() error {
 		v := group.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.AllowOperatorContribution(); !ok {
+		v := group.DefaultAllowOperatorContribution
+		_c.mutation.SetAllowOperatorContribution(v)
+	}
 	if _, ok := _c.mutation.RateMultiplier(); !ok {
 		v := group.DefaultRateMultiplier
 		_c.mutation.SetRateMultiplier(v)
@@ -1221,6 +1253,9 @@ func (_c *GroupCreate) check() error {
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Group.updated_at"`)}
+	}
+	if _, ok := _c.mutation.AllowOperatorContribution(); !ok {
+		return &ValidationError{Name: "allow_operator_contribution", err: errors.New(`ent: missing required field "Group.allow_operator_contribution"`)}
 	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Group.name"`)}
@@ -1456,6 +1491,14 @@ func (_c *GroupCreate) createSpec() (*Group, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(group.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
+	}
+	if value, ok := _c.mutation.ManagerUserID(); ok {
+		_spec.SetField(group.FieldManagerUserID, field.TypeInt64, value)
+		_node.ManagerUserID = &value
+	}
+	if value, ok := _c.mutation.AllowOperatorContribution(); ok {
+		_spec.SetField(group.FieldAllowOperatorContribution, field.TypeBool, value)
+		_node.AllowOperatorContribution = value
 	}
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(group.FieldName, field.TypeString, value)
@@ -1892,6 +1935,42 @@ func (u *GroupUpsert) UpdateDeletedAt() *GroupUpsert {
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *GroupUpsert) ClearDeletedAt() *GroupUpsert {
 	u.SetNull(group.FieldDeletedAt)
+	return u
+}
+
+// SetManagerUserID sets the "manager_user_id" field.
+func (u *GroupUpsert) SetManagerUserID(v int64) *GroupUpsert {
+	u.Set(group.FieldManagerUserID, v)
+	return u
+}
+
+// UpdateManagerUserID sets the "manager_user_id" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateManagerUserID() *GroupUpsert {
+	u.SetExcluded(group.FieldManagerUserID)
+	return u
+}
+
+// AddManagerUserID adds v to the "manager_user_id" field.
+func (u *GroupUpsert) AddManagerUserID(v int64) *GroupUpsert {
+	u.Add(group.FieldManagerUserID, v)
+	return u
+}
+
+// ClearManagerUserID clears the value of the "manager_user_id" field.
+func (u *GroupUpsert) ClearManagerUserID() *GroupUpsert {
+	u.SetNull(group.FieldManagerUserID)
+	return u
+}
+
+// SetAllowOperatorContribution sets the "allow_operator_contribution" field.
+func (u *GroupUpsert) SetAllowOperatorContribution(v bool) *GroupUpsert {
+	u.Set(group.FieldAllowOperatorContribution, v)
+	return u
+}
+
+// UpdateAllowOperatorContribution sets the "allow_operator_contribution" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateAllowOperatorContribution() *GroupUpsert {
+	u.SetExcluded(group.FieldAllowOperatorContribution)
 	return u
 }
 
@@ -3001,6 +3080,48 @@ func (u *GroupUpsertOne) UpdateDeletedAt() *GroupUpsertOne {
 func (u *GroupUpsertOne) ClearDeletedAt() *GroupUpsertOne {
 	return u.Update(func(s *GroupUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetManagerUserID sets the "manager_user_id" field.
+func (u *GroupUpsertOne) SetManagerUserID(v int64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetManagerUserID(v)
+	})
+}
+
+// AddManagerUserID adds v to the "manager_user_id" field.
+func (u *GroupUpsertOne) AddManagerUserID(v int64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddManagerUserID(v)
+	})
+}
+
+// UpdateManagerUserID sets the "manager_user_id" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateManagerUserID() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateManagerUserID()
+	})
+}
+
+// ClearManagerUserID clears the value of the "manager_user_id" field.
+func (u *GroupUpsertOne) ClearManagerUserID() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearManagerUserID()
+	})
+}
+
+// SetAllowOperatorContribution sets the "allow_operator_contribution" field.
+func (u *GroupUpsertOne) SetAllowOperatorContribution(v bool) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetAllowOperatorContribution(v)
+	})
+}
+
+// UpdateAllowOperatorContribution sets the "allow_operator_contribution" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateAllowOperatorContribution() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateAllowOperatorContribution()
 	})
 }
 
@@ -4447,6 +4568,48 @@ func (u *GroupUpsertBulk) UpdateDeletedAt() *GroupUpsertBulk {
 func (u *GroupUpsertBulk) ClearDeletedAt() *GroupUpsertBulk {
 	return u.Update(func(s *GroupUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetManagerUserID sets the "manager_user_id" field.
+func (u *GroupUpsertBulk) SetManagerUserID(v int64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetManagerUserID(v)
+	})
+}
+
+// AddManagerUserID adds v to the "manager_user_id" field.
+func (u *GroupUpsertBulk) AddManagerUserID(v int64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddManagerUserID(v)
+	})
+}
+
+// UpdateManagerUserID sets the "manager_user_id" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateManagerUserID() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateManagerUserID()
+	})
+}
+
+// ClearManagerUserID clears the value of the "manager_user_id" field.
+func (u *GroupUpsertBulk) ClearManagerUserID() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearManagerUserID()
+	})
+}
+
+// SetAllowOperatorContribution sets the "allow_operator_contribution" field.
+func (u *GroupUpsertBulk) SetAllowOperatorContribution(v bool) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetAllowOperatorContribution(v)
+	})
+}
+
+// UpdateAllowOperatorContribution sets the "allow_operator_contribution" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateAllowOperatorContribution() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateAllowOperatorContribution()
 	})
 }
 

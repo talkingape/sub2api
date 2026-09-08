@@ -70,6 +70,16 @@ func DeletedAt(v time.Time) predicate.Group {
 	return predicate.Group(sql.FieldEQ(FieldDeletedAt, v))
 }
 
+// ManagerUserID applies equality check predicate on the "manager_user_id" field. It's identical to ManagerUserIDEQ.
+func ManagerUserID(v int64) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldManagerUserID, v))
+}
+
+// AllowOperatorContribution applies equality check predicate on the "allow_operator_contribution" field. It's identical to AllowOperatorContributionEQ.
+func AllowOperatorContribution(v bool) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldAllowOperatorContribution, v))
+}
+
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
 func Name(v string) predicate.Group {
 	return predicate.Group(sql.FieldEQ(FieldName, v))
@@ -473,6 +483,66 @@ func DeletedAtIsNil() predicate.Group {
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.Group {
 	return predicate.Group(sql.FieldNotNull(FieldDeletedAt))
+}
+
+// ManagerUserIDEQ applies the EQ predicate on the "manager_user_id" field.
+func ManagerUserIDEQ(v int64) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldManagerUserID, v))
+}
+
+// ManagerUserIDNEQ applies the NEQ predicate on the "manager_user_id" field.
+func ManagerUserIDNEQ(v int64) predicate.Group {
+	return predicate.Group(sql.FieldNEQ(FieldManagerUserID, v))
+}
+
+// ManagerUserIDIn applies the In predicate on the "manager_user_id" field.
+func ManagerUserIDIn(vs ...int64) predicate.Group {
+	return predicate.Group(sql.FieldIn(FieldManagerUserID, vs...))
+}
+
+// ManagerUserIDNotIn applies the NotIn predicate on the "manager_user_id" field.
+func ManagerUserIDNotIn(vs ...int64) predicate.Group {
+	return predicate.Group(sql.FieldNotIn(FieldManagerUserID, vs...))
+}
+
+// ManagerUserIDGT applies the GT predicate on the "manager_user_id" field.
+func ManagerUserIDGT(v int64) predicate.Group {
+	return predicate.Group(sql.FieldGT(FieldManagerUserID, v))
+}
+
+// ManagerUserIDGTE applies the GTE predicate on the "manager_user_id" field.
+func ManagerUserIDGTE(v int64) predicate.Group {
+	return predicate.Group(sql.FieldGTE(FieldManagerUserID, v))
+}
+
+// ManagerUserIDLT applies the LT predicate on the "manager_user_id" field.
+func ManagerUserIDLT(v int64) predicate.Group {
+	return predicate.Group(sql.FieldLT(FieldManagerUserID, v))
+}
+
+// ManagerUserIDLTE applies the LTE predicate on the "manager_user_id" field.
+func ManagerUserIDLTE(v int64) predicate.Group {
+	return predicate.Group(sql.FieldLTE(FieldManagerUserID, v))
+}
+
+// ManagerUserIDIsNil applies the IsNil predicate on the "manager_user_id" field.
+func ManagerUserIDIsNil() predicate.Group {
+	return predicate.Group(sql.FieldIsNull(FieldManagerUserID))
+}
+
+// ManagerUserIDNotNil applies the NotNil predicate on the "manager_user_id" field.
+func ManagerUserIDNotNil() predicate.Group {
+	return predicate.Group(sql.FieldNotNull(FieldManagerUserID))
+}
+
+// AllowOperatorContributionEQ applies the EQ predicate on the "allow_operator_contribution" field.
+func AllowOperatorContributionEQ(v bool) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldAllowOperatorContribution, v))
+}
+
+// AllowOperatorContributionNEQ applies the NEQ predicate on the "allow_operator_contribution" field.
+func AllowOperatorContributionNEQ(v bool) predicate.Group {
+	return predicate.Group(sql.FieldNEQ(FieldAllowOperatorContribution, v))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.

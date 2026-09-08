@@ -420,17 +420,18 @@ func buildAccountForCreate(input *CreateAccountInput, accountExtra map[string]an
 	delete(accountExtra, OllamaCloudUsageSnapshotExtraKey)
 	accountExtra = prepareCodexFingerprintExtraForCreate(input.Platform, input.Type, accountExtra)
 	account := &Account{
-		Name:        input.Name,
-		Notes:       normalizeAccountNotes(input.Notes),
-		Platform:    input.Platform,
-		Type:        input.Type,
-		Credentials: input.Credentials,
-		Extra:       accountExtra,
-		ProxyID:     input.ProxyID,
-		Concurrency: normalizeAccountConcurrency(input.Platform, input.Type, input.Concurrency),
-		Priority:    input.Priority,
-		Status:      StatusActive,
-		Schedulable: true,
+		ManagerUserID: normalizedManagerUserID(input.ManagerUserID),
+		Name:          input.Name,
+		Notes:         normalizeAccountNotes(input.Notes),
+		Platform:      input.Platform,
+		Type:          input.Type,
+		Credentials:   input.Credentials,
+		Extra:         accountExtra,
+		ProxyID:       input.ProxyID,
+		Concurrency:   normalizeAccountConcurrency(input.Platform, input.Type, input.Concurrency),
+		Priority:      input.Priority,
+		Status:        StatusActive,
+		Schedulable:   true,
 	}
 	if input.ProbeEnabled != nil && *input.ProbeEnabled {
 		if !isUpstreamBillingProbeAccount(account) {
@@ -530,14 +531,25 @@ func (s *adminServiceImpl) CreateAccount(ctx context.Context, input *CreateAccou
 	if err := s.ValidateAccountGroupBindings(ctx, groupIDs); err != nil {
 		return nil, err
 	}
-	if err := s.accountRepo.Create(ctx, account); err != nil {
-		return nil, err
-	}
-
-	// 绑定分组
-	if len(groupIDs) > 0 {
-		if err := s.accountRepo.BindGroups(ctx, account.ID, groupIDs); err != nil {
+	if _, scoped := ResourceManagerScopeFromContext(ctx); scoped {
+		if s.accountDuplicateRepo == nil {
+			return nil, fmt.Errorf("atomic account repository is unavailable")
+		}
+		groups := make([]AccountGroup, 0, len(groupIDs))
+		for i, id := range groupIDs {
+			groups = append(groups, AccountGroup{GroupID: id, Priority: i + 1})
+		}
+		if err := s.accountDuplicateRepo.CreateWithAccountGroups(ctx, account, groups); err != nil {
 			return nil, err
+		}
+	} else {
+		if err := s.accountRepo.Create(ctx, account); err != nil {
+			return nil, err
+		}
+		if len(groupIDs) > 0 {
+			if err := s.accountRepo.BindGroups(ctx, account.ID, groupIDs); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -570,6 +582,26 @@ func (s *adminServiceImpl) CreateAccount(ctx context.Context, input *CreateAccou
 }
 
 func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *UpdateAccountInput) (*Account, error) {
+	if _, scoped := ResourceManagerScopeFromContext(ctx); scoped && !InResourceTransaction(ctx) {
+		runner, ok := s.accountRepo.(ResourceTransactionRunner)
+		if !ok {
+			return nil, fmt.Errorf("operator account transaction is unavailable")
+		}
+		var result *Account
+		err := runner.RunResourceTransaction(ctx, func(txCtx context.Context) error {
+			var err error
+			result, err = s.UpdateAccount(WithResourceTransaction(txCtx), id, input)
+			return err
+		})
+		return result, err
+	}
+	if _, scoped := ResourceManagerScopeFromContext(ctx); scoped {
+		patch := OperatorResourcePatch{Concurrency: input.Concurrency, Priority: input.Priority}
+		if input.Name != "" {
+			patch.Name = &input.Name
+		}
+		ctx = WithOperatorResourcePatch(ctx, patch)
+	}
 	account, err := s.accountRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -627,6 +659,9 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 	}
 	wasOveragesEnabled := account.IsOveragesEnabled()
 
+	if input.ManagerUserID != nil {
+		account.ManagerUserID = normalizedManagerUserID(input.ManagerUserID)
+	}
 	if input.Name != "" {
 		account.Name = input.Name
 	}

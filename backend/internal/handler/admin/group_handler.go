@@ -182,6 +182,8 @@ func sanitizeUpdateGroupRequestForSimpleMode(req *UpdateGroupRequest) {
 
 // CreateGroupRequest represents create group request
 type CreateGroupRequest struct {
+	AllowOperatorContribution bool                          `json:"allow_operator_contribution"`
+	ManagerUserID             *int64                        `json:"manager_user_id" binding:"omitempty,gte=0"`
 	Name                      string                        `json:"name" binding:"required"`
 	Description               string                        `json:"description"`
 	Platform                  string                        `json:"platform" binding:"omitempty,oneof=anthropic openai gemini antigravity grok kimi zhipu deepseek minimax opencode_go composite"`
@@ -256,6 +258,8 @@ type CreateGroupRequest struct {
 
 // UpdateGroupRequest represents update group request
 type UpdateGroupRequest struct {
+	AllowOperatorContribution *bool                          `json:"allow_operator_contribution"`
+	ManagerUserID             *int64                         `json:"manager_user_id" binding:"omitempty,gte=0"`
 	Name                      string                         `json:"name"`
 	Description               *string                        `json:"description"`
 	Platform                  string                         `json:"platform" binding:"omitempty,oneof=anthropic openai gemini antigravity grok kimi zhipu deepseek minimax opencode_go composite"`
@@ -641,6 +645,9 @@ func (h *GroupHandler) Create(c *gin.Context) {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
 	}
+	if !validateResourceManagerRequest(c, h.adminService, req.ManagerUserID) {
+		return
+	}
 	if h.isSimpleMode() && req.Platform == service.PlatformComposite {
 		response.BadRequest(c, "Platform is not supported in simple mode")
 		return
@@ -662,6 +669,8 @@ func (h *GroupHandler) Create(c *gin.Context) {
 	}
 
 	group, err := h.adminService.CreateGroup(c.Request.Context(), &service.CreateGroupInput{
+		ManagerUserID:                   req.ManagerUserID,
+		AllowOperatorContribution:       req.AllowOperatorContribution,
 		Name:                            req.Name,
 		Description:                     req.Description,
 		Platform:                        req.Platform,
@@ -802,11 +811,16 @@ func (h *GroupHandler) Update(c *gin.Context) {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
 	}
+	if !validateResourceManagerRequest(c, h.adminService, req.ManagerUserID) {
+		return
+	}
 	if h.isSimpleMode() {
 		sanitizeUpdateGroupRequestForSimpleMode(&req)
 	}
 
 	group, err := h.adminService.UpdateGroup(c.Request.Context(), groupID, &service.UpdateGroupInput{
+		ManagerUserID:                   req.ManagerUserID,
+		AllowOperatorContribution:       req.AllowOperatorContribution,
 		Name:                            req.Name,
 		Description:                     req.Description,
 		Platform:                        req.Platform,

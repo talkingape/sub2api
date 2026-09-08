@@ -453,7 +453,8 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/admin/groups',
     name: 'AdminGroups',
-    component: () => import('@/views/admin/GroupsView.vue'),
+    component: () => import('@/views/admin/ResourceManagementView.vue'),
+    props: { resource: 'groups' },
     meta: {
       requiresAuth: true,
       requiresAdmin: true,
@@ -516,7 +517,8 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/admin/accounts',
     name: 'AdminAccounts',
-    component: () => import('@/views/admin/AccountsView.vue'),
+    component: () => import('@/views/admin/ResourceManagementView.vue'),
+    props: { resource: 'accounts' },
     meta: {
       requiresAuth: true,
       requiresAdmin: true,
@@ -884,7 +886,7 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   // Check admin requirement
-  if (requiresAdmin && !authStore.isAdmin) {
+  if (requiresAdmin && !authStore.isAdmin && !(authStore.isOperator && ['/admin/accounts', '/admin/groups'].includes(to.path))) {
     // User is authenticated but not admin, redirect to user dashboard
     next('/dashboard')
     return

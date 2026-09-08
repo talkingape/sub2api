@@ -680,6 +680,7 @@ export default {
       createdAt: 'Created',
       totalRecharged: 'Total Recharged',
       roles: {
+        operator: 'Resource operator',
         admin: 'Admin',
         user: 'User'
       },

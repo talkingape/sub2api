@@ -363,6 +363,7 @@ func normalizeCreateGroupInputForSimpleMode(input *CreateGroupInput) {
 	}
 	*input = CreateGroupInput{
 		Name: input.Name, Description: input.Description, Platform: input.Platform,
+		ManagerUserID: normalizedManagerUserID(input.ManagerUserID), AllowOperatorContribution: input.AllowOperatorContribution,
 		RateMultiplier: 1, SubscriptionType: SubscriptionTypeStandard,
 	}
 }
@@ -371,7 +372,7 @@ func normalizeUpdateGroupInputForSimpleMode(input *UpdateGroupInput) {
 	if input == nil {
 		return
 	}
-	*input = UpdateGroupInput{Name: input.Name, Description: input.Description}
+	*input = UpdateGroupInput{Name: input.Name, Description: input.Description, ManagerUserID: input.ManagerUserID, AllowOperatorContribution: input.AllowOperatorContribution}
 }
 
 func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupInput) (*Group, error) {
@@ -553,6 +554,8 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 	}
 
 	group := &Group{
+		ManagerUserID:                   normalizedManagerUserID(input.ManagerUserID),
+		AllowOperatorContribution:       input.AllowOperatorContribution,
 		Name:                            input.Name,
 		Description:                     input.Description,
 		Platform:                        platform,
@@ -743,6 +746,13 @@ func (s *adminServiceImpl) validateFallbackGroupOnInvalidRequest(ctx context.Con
 }
 
 func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *UpdateGroupInput) (*Group, error) {
+	if _, scoped := ResourceManagerScopeFromContext(ctx); scoped {
+		patch := OperatorResourcePatch{Description: input.Description}
+		if input.Name != "" {
+			patch.Name = &input.Name
+		}
+		ctx = WithOperatorResourcePatch(ctx, patch)
+	}
 	group, err := s.groupRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -760,6 +770,12 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 	// 渠道缓存里存了 groupID → platform 的映射，改了平台要让它失效（见函数末尾）
 	previousPlatform := group.Platform
 
+	if input.ManagerUserID != nil {
+		group.ManagerUserID = normalizedManagerUserID(input.ManagerUserID)
+	}
+	if input.AllowOperatorContribution != nil {
+		group.AllowOperatorContribution = *input.AllowOperatorContribution
+	}
 	if input.Name != "" {
 		group.Name = input.Name
 	}

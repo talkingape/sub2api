@@ -31,6 +31,11 @@
 
     <!-- Navigation -->
     <nav ref="sidebarNavRef" class="sidebar-nav scrollbar-hide">
+      <div v-if="authStore.isOperator" class="sidebar-section">
+        <router-link v-for="item in [{ path: '/admin/accounts', label: t('admin.accounts.title') }, { path: '/admin/groups', label: t('admin.groups.title') }]" :key="item.path" :to="item.path" class="sidebar-link mb-1" :class="{ 'sidebar-link-active': isActive(item.path) }" @click="handleMenuItemClick(item.path)">
+          <span>{{ item.label }}</span>
+        </router-link>
+      </div>
       <!-- Admin View: Admin menu first, then personal menu -->
       <template v-if="isAdmin">
         <!-- Admin Section -->

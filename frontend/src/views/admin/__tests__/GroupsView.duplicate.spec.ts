@@ -231,6 +231,48 @@ describe('GroupsView duplicate action', () => {
     wrapper.unmount()
   })
 
+  it('submits administrator resource ownership and contribution settings when creating in simple mode', async () => {
+    authState.isSimpleMode = true
+    vi.mocked(adminAPI.groups.create).mockReset()
+    vi.mocked(adminAPI.groups.create).mockResolvedValue({ ...sourceGroup, id: 99 })
+    const wrapper = mountView()
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text() === 'admin.groups.createGroup')!.trigger('click')
+    await flushPromises()
+    const form = wrapper.get('#create-group-form')
+    await form.get('[data-tour="group-form-name"]').setValue('Managed simple group')
+    await form.get('[data-testid="group-manager"]').setValue(7)
+    await form.get('[data-testid="group-contribution"]').setValue(true)
+    await form.trigger('submit')
+    await flushPromises()
+    expect(adminAPI.groups.create).toHaveBeenCalledWith({
+      name: 'Managed simple group', description: '', platform: 'anthropic',
+      manager_user_id: 7, allow_operator_contribution: true
+    })
+    wrapper.unmount()
+  })
+
+  it('retains and clears administrator ownership and contribution settings in simple mode', async () => {
+    authState.isSimpleMode = true
+    listGroups.mockResolvedValue({ items: [{ ...sourceGroup, manager_user_id: 7, allow_operator_contribution: true }], total: 1, page: 1, page_size: 20, pages: 1 })
+    updateGroup.mockResolvedValue(sourceGroup)
+    const wrapper = mountView()
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text() === 'common.edit')!.trigger('click')
+    await flushPromises()
+    const form = wrapper.get('#edit-group-form')
+    expect((form.get('[data-testid="group-manager"]').element as HTMLInputElement).value).toBe('7')
+    expect((form.get('[data-testid="group-contribution"]').element as HTMLInputElement).checked).toBe(true)
+    await form.get('[data-testid="group-manager"]').setValue(0)
+    await form.get('[data-testid="group-contribution"]').setValue(false)
+    await form.trigger('submit')
+    await flushPromises()
+    expect(updateGroup).toHaveBeenCalledWith(42, {
+      name: 'Primary', description: '', manager_user_id: 0, allow_operator_contribution: false
+    })
+    wrapper.unmount()
+  })
+
   it('hides advanced group actions in simple mode', async () => {
     authState.isSimpleMode = true
     const compositeGroup = { ...sourceGroup, platform: 'composite' }

@@ -147,6 +147,8 @@ func GroupFromServiceAdmin(g *service.Group) *AdminGroup {
 		return nil
 	}
 	out := &AdminGroup{
+		ManagerUserID:               g.ManagerUserID,
+		AllowOperatorContribution:   g.AllowOperatorContribution,
 		Group:                       groupFromServiceBase(g),
 		ForceOpenAIFast:             g.ForceOpenAIFast,
 		FreeOpenAIFast:              g.FreeOpenAIFast,
@@ -243,6 +245,7 @@ func AccountFromServiceShallow(a *service.Account) *Account {
 	}
 	out := &Account{
 		ID:                      a.ID,
+		ManagerUserID:           a.ManagerUserID,
 		Name:                    a.Name,
 		Notes:                   a.Notes,
 		Platform:                a.Platform,

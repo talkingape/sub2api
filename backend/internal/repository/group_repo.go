@@ -95,6 +95,8 @@ func createGroupRecord(ctx context.Context, client *dbent.Client, groupIn *servi
 		return fmt.Errorf("marshal group model pricing: %w", err)
 	}
 	builder := client.Group.Create().
+		SetNillableManagerUserID(groupIn.ManagerUserID).
+		SetAllowOperatorContribution(groupIn.AllowOperatorContribution).
 		SetName(groupIn.Name).
 		SetDescription(groupIn.Description).
 		SetPlatform(groupIn.Platform).
@@ -278,11 +280,35 @@ func (r *groupRepository) GetByIDLite(ctx context.Context, id int64) (*service.G
 }
 
 func (r *groupRepository) Update(ctx context.Context, groupIn *service.Group) error {
+	if scope, scoped := service.ResourceManagerScopeFromContext(ctx); scoped {
+		patch, ok := service.OperatorResourcePatchFromContext(ctx)
+		if !ok {
+			return fmt.Errorf("operator group update requires explicit field patch")
+		}
+		builder := r.client.Group.UpdateOneID(groupIn.ID).Where(group.ManagerUserIDEQ(scope.UserID))
+		if patch.Name != nil {
+			builder.SetName(*patch.Name)
+		}
+		if patch.Description != nil {
+			builder.SetDescription(*patch.Description)
+		}
+		updated, err := builder.Save(ctx)
+		if err != nil {
+			return translatePersistenceError(err, service.ErrGroupNotFound, service.ErrGroupExists)
+		}
+		*groupIn = *groupEntityToService(updated)
+		if err := enqueueSchedulerOutbox(ctx, r.sql, service.SchedulerOutboxEventGroupChanged, nil, &groupIn.ID, nil); err != nil {
+			logger.LegacyPrintf("repository.group", "[SchedulerOutbox] enqueue group update failed: group=%d err=%v", groupIn.ID, err)
+		}
+		return nil
+	}
 	modelPricing, err := json.Marshal(groupIn.ModelPricing)
 	if err != nil {
 		return fmt.Errorf("marshal group model pricing: %w", err)
 	}
 	builder := r.client.Group.UpdateOneID(groupIn.ID).
+		SetNillableManagerUserID(groupIn.ManagerUserID).
+		SetAllowOperatorContribution(groupIn.AllowOperatorContribution).
 		SetName(groupIn.Name).
 		SetDescription(groupIn.Description).
 		SetPlatform(groupIn.Platform).
@@ -337,6 +363,13 @@ func (r *groupRepository) Update(ctx context.Context, groupIn *service.Group) er
 		SetProfitSafetyBuffer(groupIn.ProfitSafetyBuffer)
 
 	// 显式处理可空字段：nil 需要 clear，非 nil 需要 set。
+	if scope, ok := service.ResourceManagerScopeFromContext(ctx); ok {
+		builder.Where(group.ManagerUserIDEQ(scope.UserID))
+	}
+	if groupIn.ManagerUserID == nil {
+		builder.ClearManagerUserID()
+	}
+
 	if groupIn.DailyLimitUSD != nil {
 		builder = builder.SetDailyLimitUsd(*groupIn.DailyLimitUSD)
 	} else {
@@ -469,6 +502,13 @@ func (r *groupRepository) ListBindableWithFilters(ctx context.Context, params pa
 
 func (r *groupRepository) listWithFiltersQuery(ctx context.Context, q *dbent.GroupQuery, params pagination.PaginationParams, platform, status, search string, isExclusive *bool) ([]service.Group, *pagination.PaginationResult, error) {
 
+	if scope, ok := service.ResourceManagerScopeFromContext(ctx); ok {
+		predicate := group.ManagerUserIDEQ(scope.UserID)
+		if scope.IncludeContributableGroups {
+			predicate = group.Or(predicate, group.AllowOperatorContributionEQ(true))
+		}
+		q.Where(predicate)
+	}
 	if platform != "" {
 		q = q.Where(group.PlatformEQ(platform))
 	}

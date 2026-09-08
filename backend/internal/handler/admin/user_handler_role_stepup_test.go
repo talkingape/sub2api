@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -83,4 +84,47 @@ func TestCreateRegularUserSkipsStepUp(t *testing.T) {
 		"email": "new-user@example.com", "password": "pass123", "role": "user",
 	})
 	require.Equal(t, http.StatusOK, rec.Code)
+}
+
+func TestCreateOperatorUserRequiresStepUp(t *testing.T) {
+	router, _ := setupRoleStepUpRouter(t)
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/admin/users", map[string]any{
+		"email": "operator@example.com", "password": "pass123", "role": "operator",
+	})
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+func TestUpdateUserPromoteToOperatorRequiresStepUp(t *testing.T) {
+	router, _ := setupRoleStepUpRouter(t)
+	rec := doJSON(t, router, http.MethodPut, "/api/v1/admin/users/1", map[string]any{"role": "operator"})
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+func TestUpdateOperatorRoleStepUp(t *testing.T) {
+	for _, role := range []string{service.RoleOperator, service.RoleUser, service.RoleAdmin} {
+		t.Run(role, func(t *testing.T) {
+			router, svc := setupRoleStepUpRouter(t)
+			svc.users = append(svc.users, service.User{ID: 3, Email: "operator@example.com", Role: service.RoleOperator, Status: service.StatusActive})
+			rec := doJSON(t, router, http.MethodPut, "/api/v1/admin/users/3", map[string]any{"role": role})
+			if role == service.RoleAdmin {
+				require.Equal(t, http.StatusUnauthorized, rec.Code)
+			} else {
+				require.Equal(t, http.StatusOK, rec.Code)
+			}
+		})
+	}
+}
+
+func TestUpdateAdminCannotDemoteSelfToOperator(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		c.Set(string(middleware.ContextKeyUser), middleware.AuthSubject{UserID: 2})
+		c.Next()
+	})
+	h := NewUserHandler(newStubAdminService(), nil, nil, nil, nil, nil, nil)
+	router.PUT("/api/v1/admin/users/:id", h.Update)
+	rec := doJSON(t, router, http.MethodPut, "/api/v1/admin/users/2", map[string]any{"role": "operator"})
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+	require.Contains(t, rec.Body.String(), "cannot demote yourself")
 }

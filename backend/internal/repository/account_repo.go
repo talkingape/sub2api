@@ -15,6 +15,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -138,6 +139,7 @@ func createAccountRecord(ctx context.Context, client *dbent.Client, account *ser
 	}
 
 	builder := client.Account.Create().
+		SetNillableManagerUserID(account.ManagerUserID).
 		SetName(account.Name).
 		SetNillableNotes(account.Notes).
 		SetPlatform(account.Platform).
@@ -229,6 +231,23 @@ func (r *accountRepository) CreateWithAccountGroups(ctx context.Context, account
 		return err
 	}
 
+	if scope, scoped := service.ResourceManagerScopeFromContext(ctx); scoped {
+		if account.ManagerUserID == nil || *account.ManagerUserID != scope.UserID {
+			return service.ErrAccountNotFound
+		}
+		permitted, err := txClient.Group.Query().Where(dbgroup.IDIn(groupIDs...), dbgroup.PlatformEQ(account.Platform), dbgroup.StatusEQ(service.StatusActive), dbgroup.Or(dbgroup.ManagerUserIDEQ(scope.UserID), dbgroup.AllowOperatorContributionEQ(true))).Count(ctx)
+		if err != nil {
+			return err
+		}
+		unique := make(map[int64]bool, len(groupIDs))
+		for _, id := range groupIDs {
+			unique[id] = true
+		}
+		if permitted != len(unique) {
+			return service.ErrGroupNotFound
+		}
+	}
+
 	if err := createAccountRecord(ctx, txClient, account); err != nil {
 		return err
 	}
@@ -261,6 +280,11 @@ func (r *accountRepository) CreateWithAccountGroups(ctx context.Context, account
 }
 
 func (r *accountRepository) GetByID(ctx context.Context, id int64) (*service.Account, error) {
+	if tx := dbent.TxFromContext(ctx); tx != nil {
+		copy := *r
+		copy.client = tx.Client()
+		r = &copy
+	}
 	m, err := r.client.Account.Query().Where(dbaccount.IDEQ(id)).Only(ctx)
 	if err != nil {
 		return nil, translatePersistenceError(err, service.ErrAccountNotFound, nil)
@@ -520,6 +544,23 @@ func (r *accountRepository) updateLockedAccount(
 	explicitRateSyncEnabled *bool,
 	explicitRateMultiplier *float64,
 ) (*dbent.Account, error) {
+	if scope, scoped := service.ResourceManagerScopeFromContext(ctx); scoped {
+		patch, ok := service.OperatorResourcePatchFromContext(ctx)
+		if !ok {
+			return nil, fmt.Errorf("operator account update requires explicit field patch")
+		}
+		builder := client.Account.UpdateOneID(account.ID).Where(dbaccount.ManagerUserIDEQ(scope.UserID))
+		if patch.Name != nil {
+			builder.SetName(*patch.Name)
+		}
+		if patch.Concurrency != nil {
+			builder.SetConcurrency(*patch.Concurrency)
+		}
+		if patch.Priority != nil {
+			builder.SetPriority(*patch.Priority)
+		}
+		return builder.Save(ctx)
+	}
 	extra, err := lockAndMergeAccountProbeExtra(ctx, client, account, explicitProbeEnabled, explicitRateSyncEnabled)
 	if err != nil {
 		return nil, err
@@ -532,6 +573,7 @@ func (r *accountRepository) updateLockedAccount(
 	}
 
 	builder := client.Account.UpdateOneID(account.ID).
+		SetNillableManagerUserID(account.ManagerUserID).
 		SetName(account.Name).
 		SetNillableNotes(account.Notes).
 		SetPlatform(account.Platform).
@@ -545,6 +587,12 @@ func (r *accountRepository) updateLockedAccount(
 		SetSchedulable(schedulable).
 		SetAutoPauseOnExpired(account.AutoPauseOnExpired)
 
+	if scope, ok := service.ResourceManagerScopeFromContext(ctx); ok {
+		builder.Where(dbaccount.ManagerUserIDEQ(scope.UserID))
+	}
+	if account.ManagerUserID == nil {
+		builder.ClearManagerUserID()
+	}
 	if explicitRateMultiplier != nil {
 		builder.SetRateMultiplier(*explicitRateMultiplier)
 	}
@@ -1012,6 +1060,9 @@ func (r *accountRepository) accountListFilteredQuery(platform, accountType, stat
 
 func (r *accountRepository) ListWithFilters(ctx context.Context, params pagination.PaginationParams, platform, accountType, status, search string, groupID int64, privacyMode string) ([]service.Account, *pagination.PaginationResult, error) {
 	q := r.accountListFilteredQuery(platform, accountType, status, search, groupID, privacyMode)
+	if scope, ok := service.ResourceManagerScopeFromContext(ctx); ok {
+		q.Where(dbaccount.ManagerUserIDEQ(scope.UserID))
+	}
 	// Clone before Count so interceptor-appended predicates (SoftDeleteMixin's
 	// deleted_at IS NULL) don't accumulate on the shared builder and pollute the
 	// subsequent list query. Same pattern used in group_repo/promo_code_repo/user_repo
@@ -1831,23 +1882,70 @@ func (r *accountRepository) GetGroups(ctx context.Context, accountID int64) ([]s
 }
 
 func (r *accountRepository) BindGroups(ctx context.Context, accountID int64, groupIDs []int64) error {
-	existingGroupIDs, err := r.loadAccountGroupIDs(ctx, accountID)
+	client := r.client
+	contextTx := dbent.TxFromContext(ctx)
+	if contextTx != nil {
+		client = contextTx.Client()
+	}
+	entries, err := client.AccountGroup.Query().Where(dbaccountgroup.AccountIDEQ(accountID)).All(ctx)
 	if err != nil {
 		return err
 	}
-	// 使用事务保证删除旧绑定与创建新绑定的原子性
-	tx, err := r.client.Tx(ctx)
-	if err != nil && !errors.Is(err, dbent.ErrTxStarted) {
-		return err
+	existingGroupIDs := make([]int64, 0, len(entries))
+	for _, entry := range entries {
+		existingGroupIDs = append(existingGroupIDs, entry.GroupID)
+	}
+	var tx *dbent.Tx
+	txClient := client
+	if contextTx == nil {
+		tx, err = client.Tx(ctx)
+		if err != nil && !errors.Is(err, dbent.ErrTxStarted) {
+			return err
+		}
+		if tx != nil {
+			defer func() { _ = tx.Rollback() }()
+			txClient = tx.Client()
+		}
 	}
 
-	var txClient *dbent.Client
-	if err == nil {
-		defer func() { _ = tx.Rollback() }()
-		txClient = tx.Client()
-	} else {
-		// 已处于外部事务中（ErrTxStarted），复用当前 client
-		txClient = r.client
+	preservedPriorities := map[int64]int{}
+	if scope, scoped := service.ResourceManagerScopeFromContext(ctx); scoped {
+		lockedAccount, err := txClient.Account.Query().Where(dbaccount.IDEQ(accountID), dbaccount.ManagerUserIDEQ(scope.UserID)).ForUpdate().Only(ctx)
+		if err != nil {
+			return translatePersistenceError(err, service.ErrAccountNotFound, nil)
+		}
+		existing, err := txClient.AccountGroup.Query().Where(dbaccountgroup.AccountIDEQ(accountID)).All(ctx)
+		if err != nil {
+			return err
+		}
+		existingIDs := make([]int64, 0, len(existing))
+		existingSet := make(map[int64]bool, len(existing))
+		for _, binding := range existing {
+			existingIDs = append(existingIDs, binding.GroupID)
+			existingSet[binding.GroupID] = true
+			preservedPriorities[binding.GroupID] = binding.Priority
+		}
+		allIDs := mergeGroupIDs(existingIDs, groupIDs)
+		groups, err := txClient.Group.Query().Where(dbgroup.IDIn(allIDs...)).Order(dbent.Asc(dbgroup.FieldID)).ForShare().All(ctx)
+		if err != nil {
+			return err
+		}
+		allowed := make(map[int64]bool, len(groups))
+		for _, g := range groups {
+			allowed[g.ID] = g.Platform == lockedAccount.Platform && g.Status == service.StatusActive && ((g.ManagerUserID != nil && *g.ManagerUserID == scope.UserID) || g.AllowOperatorContribution)
+		}
+		for _, id := range groupIDs {
+			if !allowed[id] && !existingSet[id] {
+				return service.ErrGroupNotFound
+			}
+		}
+		// Preserve administrator-controlled associations, including those omitted by the caller.
+		for _, id := range existingIDs {
+			if !allowed[id] {
+				groupIDs = mergeGroupIDs(groupIDs, []int64{id})
+			}
+		}
+		existingGroupIDs = existingIDs
 	}
 	if err := lockLiveGroups(ctx, txClient, groupIDs); err != nil {
 		return err
@@ -1857,24 +1955,23 @@ func (r *accountRepository) BindGroups(ctx context.Context, accountID int64, gro
 		return err
 	}
 
-	if len(groupIDs) == 0 {
-		if tx != nil {
-			return tx.Commit()
-		}
-		return nil
-	}
-
 	builders := make([]*dbent.AccountGroupCreate, 0, len(groupIDs))
 	for i, groupID := range groupIDs {
+		priority := i + 1
+		if preserved, ok := preservedPriorities[groupID]; ok {
+			priority = preserved
+		}
 		builders = append(builders, txClient.AccountGroup.Create().
 			SetAccountID(accountID).
 			SetGroupID(groupID).
-			SetPriority(i+1),
+			SetPriority(priority),
 		)
 	}
 
-	if _, err := txClient.AccountGroup.CreateBulk(builders...).Save(ctx); err != nil {
-		return err
+	if len(builders) > 0 {
+		if _, err := txClient.AccountGroup.CreateBulk(builders...).Save(ctx); err != nil {
+			return err
+		}
 	}
 
 	if tx != nil {
@@ -1883,7 +1980,11 @@ func (r *accountRepository) BindGroups(ctx context.Context, accountID int64, gro
 		}
 	}
 	payload := buildSchedulerGroupPayload(mergeGroupIDs(existingGroupIDs, groupIDs))
-	if err := enqueueSchedulerOutbox(ctx, r.sql, service.SchedulerOutboxEventAccountGroupsChanged, &accountID, nil, payload); err != nil {
+	outboxExecutor := r.sql
+	if contextTx != nil {
+		outboxExecutor = txClient
+	}
+	if err := enqueueSchedulerOutbox(ctx, outboxExecutor, service.SchedulerOutboxEventAccountGroupsChanged, &accountID, nil, payload); err != nil {
 		logger.LegacyPrintf("repository.account", "[SchedulerOutbox] enqueue bind groups failed: account=%d err=%v", accountID, err)
 	}
 	return nil
@@ -3449,6 +3550,7 @@ func accountEntityToService(m *dbent.Account) *service.Account {
 	rateMultiplier := m.RateMultiplier
 
 	return &service.Account{
+		ManagerUserID:           m.ManagerUserID,
 		ID:                      m.ID,
 		Name:                    m.Name,
 		Notes:                   m.Notes,
@@ -3908,4 +4010,20 @@ func (r *accountRepository) ListShadowsByParent(ctx context.Context, parentID in
 		out = append(out, accountEntityToService(m))
 	}
 	return out, nil
+}
+
+// RunResourceTransaction keeps an operator edit and its bindings atomic.
+func (r *accountRepository) RunResourceTransaction(ctx context.Context, fn func(context.Context) error) error {
+	if dbent.TxFromContext(ctx) != nil {
+		return fn(ctx)
+	}
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	if err := fn(dbent.NewTxContext(ctx, tx)); err != nil {
+		return err
+	}
+	return tx.Commit()
 }

@@ -965,6 +965,8 @@ func groupEntityToService(g *dbent.Group) *service.Group {
 		}
 	}
 	return &service.Group{
+		ManagerUserID:                   g.ManagerUserID,
+		AllowOperatorContribution:       g.AllowOperatorContribution,
 		ID:                              g.ID,
 		Name:                            g.Name,
 		Description:                     derefString(g.Description),

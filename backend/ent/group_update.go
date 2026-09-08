@@ -63,6 +63,47 @@ func (_u *GroupUpdate) ClearDeletedAt() *GroupUpdate {
 	return _u
 }
 
+// SetManagerUserID sets the "manager_user_id" field.
+func (_u *GroupUpdate) SetManagerUserID(v int64) *GroupUpdate {
+	_u.mutation.ResetManagerUserID()
+	_u.mutation.SetManagerUserID(v)
+	return _u
+}
+
+// SetNillableManagerUserID sets the "manager_user_id" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableManagerUserID(v *int64) *GroupUpdate {
+	if v != nil {
+		_u.SetManagerUserID(*v)
+	}
+	return _u
+}
+
+// AddManagerUserID adds value to the "manager_user_id" field.
+func (_u *GroupUpdate) AddManagerUserID(v int64) *GroupUpdate {
+	_u.mutation.AddManagerUserID(v)
+	return _u
+}
+
+// ClearManagerUserID clears the value of the "manager_user_id" field.
+func (_u *GroupUpdate) ClearManagerUserID() *GroupUpdate {
+	_u.mutation.ClearManagerUserID()
+	return _u
+}
+
+// SetAllowOperatorContribution sets the "allow_operator_contribution" field.
+func (_u *GroupUpdate) SetAllowOperatorContribution(v bool) *GroupUpdate {
+	_u.mutation.SetAllowOperatorContribution(v)
+	return _u
+}
+
+// SetNillableAllowOperatorContribution sets the "allow_operator_contribution" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableAllowOperatorContribution(v *bool) *GroupUpdate {
+	if v != nil {
+		_u.SetAllowOperatorContribution(*v)
+	}
+	return _u
+}
+
 // SetName sets the "name" field.
 func (_u *GroupUpdate) SetName(v string) *GroupUpdate {
 	_u.mutation.SetName(v)
@@ -1572,6 +1613,18 @@ func (_u *GroupUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(group.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := _u.mutation.ManagerUserID(); ok {
+		_spec.SetField(group.FieldManagerUserID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedManagerUserID(); ok {
+		_spec.AddField(group.FieldManagerUserID, field.TypeInt64, value)
+	}
+	if _u.mutation.ManagerUserIDCleared() {
+		_spec.ClearField(group.FieldManagerUserID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.AllowOperatorContribution(); ok {
+		_spec.SetField(group.FieldAllowOperatorContribution, field.TypeBool, value)
+	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(group.FieldName, field.TypeString, value)
 	}
@@ -2254,6 +2307,47 @@ func (_u *GroupUpdateOne) SetNillableDeletedAt(v *time.Time) *GroupUpdateOne {
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (_u *GroupUpdateOne) ClearDeletedAt() *GroupUpdateOne {
 	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetManagerUserID sets the "manager_user_id" field.
+func (_u *GroupUpdateOne) SetManagerUserID(v int64) *GroupUpdateOne {
+	_u.mutation.ResetManagerUserID()
+	_u.mutation.SetManagerUserID(v)
+	return _u
+}
+
+// SetNillableManagerUserID sets the "manager_user_id" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableManagerUserID(v *int64) *GroupUpdateOne {
+	if v != nil {
+		_u.SetManagerUserID(*v)
+	}
+	return _u
+}
+
+// AddManagerUserID adds value to the "manager_user_id" field.
+func (_u *GroupUpdateOne) AddManagerUserID(v int64) *GroupUpdateOne {
+	_u.mutation.AddManagerUserID(v)
+	return _u
+}
+
+// ClearManagerUserID clears the value of the "manager_user_id" field.
+func (_u *GroupUpdateOne) ClearManagerUserID() *GroupUpdateOne {
+	_u.mutation.ClearManagerUserID()
+	return _u
+}
+
+// SetAllowOperatorContribution sets the "allow_operator_contribution" field.
+func (_u *GroupUpdateOne) SetAllowOperatorContribution(v bool) *GroupUpdateOne {
+	_u.mutation.SetAllowOperatorContribution(v)
+	return _u
+}
+
+// SetNillableAllowOperatorContribution sets the "allow_operator_contribution" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableAllowOperatorContribution(v *bool) *GroupUpdateOne {
+	if v != nil {
+		_u.SetAllowOperatorContribution(*v)
+	}
 	return _u
 }
 
@@ -3795,6 +3889,18 @@ func (_u *GroupUpdateOne) sqlSave(ctx context.Context) (_node *Group, err error)
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(group.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.ManagerUserID(); ok {
+		_spec.SetField(group.FieldManagerUserID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedManagerUserID(); ok {
+		_spec.AddField(group.FieldManagerUserID, field.TypeInt64, value)
+	}
+	if _u.mutation.ManagerUserIDCleared() {
+		_spec.ClearField(group.FieldManagerUserID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.AllowOperatorContribution(); ok {
+		_spec.SetField(group.FieldAllowOperatorContribution, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(group.FieldName, field.TypeString, value)
