@@ -25,6 +25,9 @@ func RegisterUserRoutes(
 	// 用户管理面变更类操作入审计（含 TOTP 启用/禁用、step-up 验证、密码修改等安全事件）
 	authenticated.Use(gin.HandlerFunc(auditLog))
 	{
+		// 全员可见的系统仪表盘与运维概览（显式只读白名单）。
+		registerInsightsRoutes(authenticated, h)
+
 		// 用户接口
 		user := authenticated.Group("/user")
 		{

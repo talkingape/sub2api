@@ -257,7 +257,7 @@ const isAdmin = computed(() => authStore.isAdmin)
 const sidebarNavRef = ref<HTMLElement | null>(null)
 const isDark = ref(document.documentElement.classList.contains('dark'))
 
-const homePath = computed(() => (isAdmin.value ? '/admin/dashboard' : '/dashboard'))
+const homePath = computed(() => '/admin/dashboard')
 
 // Per-group expand/collapse overrides. A group with no entry follows the
 // automatic behavior (expanded while the active route is one of its children);
@@ -713,7 +713,7 @@ const purchaseNavLabel = computed(() => {
 const flagAffiliate = makeSidebarFlag(FeatureFlags.affiliate)
 const flagRiskControl = makeSidebarFlag(FeatureFlags.riskControl)
 const flagPluginManagement = makeSidebarFlag(FeatureFlags.pluginManagement)
-const flagOpsMonitoring = () => adminSettingsStore.opsMonitoringEnabled
+const flagOpsMonitoring = () => !authStore.isAdmin || adminSettingsStore.opsMonitoringEnabled
 const flagAdminPayment = () => adminSettingsStore.paymentEnabled
 const flagBatchImageAccess = () => canUseBatchImage.value
 
@@ -725,7 +725,10 @@ const flagBatchImageAccess = () => canUseBatchImage.value
 function buildSelfNavItems(withDashboard: boolean): NavItem[] {
   const items: NavItem[] = []
   if (withDashboard) {
-    items.push({ path: '/dashboard', label: t('nav.dashboard'), icon: DashboardIcon })
+    items.push(
+      { path: '/admin/dashboard', label: t('nav.dashboard'), icon: DashboardIcon },
+      { path: '/admin/ops', label: t('nav.ops'), icon: ChartIcon, featureFlag: flagOpsMonitoring }
+    )
   }
   items.push(
     { path: '/keys', label: t('nav.apiKeys'), icon: KeyIcon },

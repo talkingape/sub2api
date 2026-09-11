@@ -110,7 +110,8 @@ function simulateGuard(
   }
 
   // 需要管理员但不是管理员
-  if (requiresAdmin && !authState.isAdmin) {
+  const sharedAdminViews = ['/admin/dashboard', '/admin/ops']
+  if (requiresAdmin && !authState.isAdmin && !sharedAdminViews.includes(toPath)) {
     return '/dashboard'
   }
 
@@ -216,9 +217,14 @@ describe('路由守卫逻辑', () => {
       expect(redirect).toBeNull()
     })
 
-    it('访问管理页面被拒绝，重定向到 /dashboard', () => {
+    it('允许访问共享系统仪表盘', () => {
       const redirect = simulateGuard('/admin/dashboard', { requiresAdmin: true }, authState)
-      expect(redirect).toBe('/dashboard')
+      expect(redirect).toBeNull()
+    })
+
+    it('允许访问共享运维概览', () => {
+      const redirect = simulateGuard('/admin/ops', { requiresAdmin: true }, authState)
+      expect(redirect).toBeNull()
     })
 
     it('访问 /admin/users 被拒绝', () => {

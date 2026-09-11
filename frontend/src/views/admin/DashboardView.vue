@@ -217,7 +217,7 @@
         </div>
 
         <!-- Quick Actions -->
-        <div class="card p-4">
+        <div v-if="authStore.isAdmin" class="card p-4">
           <div class="mb-3 flex items-center justify-between">
             <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
               {{ t('admin.dashboard.quickActions') }}
@@ -347,7 +347,8 @@ import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 
 const { t } = useI18n()
-import { adminAPI } from '@/api/admin'
+import { insightsDashboardAPI } from '@/api/insights'
+import { useAuthStore } from '@/stores/auth'
 import type {
   DashboardStats,
   TrendDataPoint,
@@ -388,6 +389,7 @@ ChartJS.register(
 )
 
 const appStore = useAppStore()
+const authStore = useAuthStore()
 const router = useRouter()
 const { canUseBatchImage, refreshBatchImageAccess } = useBatchImageAccess()
 const stats = ref<DashboardStats | null>(null)
@@ -612,6 +614,7 @@ const formatDuration = (ms: number): string => {
 }
 
 const goToUserUsage = (item: UserSpendingRankingItem) => {
+  if (!authStore.isAdmin) return
   void router.push({
     path: '/admin/usage',
     query: {
@@ -651,7 +654,7 @@ const loadDashboardSnapshot = async (includeStats: boolean) => {
   }
   chartsLoading.value = true
   try {
-    const response = await adminAPI.dashboard.getSnapshotV2({
+    const response = await insightsDashboardAPI.getSnapshotV2({
       start_date: startDate.value,
       end_date: endDate.value,
       granularity: granularity.value,
@@ -683,7 +686,7 @@ const loadUsersTrend = async () => {
   const currentSeq = ++usersTrendLoadSeq
   userTrendLoading.value = true
   try {
-    const response = await adminAPI.dashboard.getUserUsageTrend({
+    const response = await insightsDashboardAPI.getUserUsageTrend({
       start_date: startDate.value,
       end_date: endDate.value,
       granularity: granularity.value,
@@ -707,7 +710,7 @@ const loadUserSpendingRanking = async () => {
   rankingLoading.value = true
   rankingError.value = false
   try {
-    const response = await adminAPI.dashboard.getUserSpendingRanking({
+    const response = await insightsDashboardAPI.getUserSpendingRanking({
       start_date: startDate.value,
       end_date: endDate.value,
       limit: rankingLimit
@@ -749,7 +752,9 @@ const loadChartData = async () => {
 }
 
 onMounted(() => {
-  void refreshBatchImageAccess()
+  if (authStore.isAdmin) {
+    void refreshBatchImageAccess()
+  }
   loadDashboardStats()
 })
 </script>

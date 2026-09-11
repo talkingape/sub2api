@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
 import type { DashboardStats } from '@/types'
+import { useAuthStore } from '@/stores/auth'
 import DashboardView from '../DashboardView.vue'
 
 const { getSnapshotV2, getUserUsageTrend, getUserSpendingRanking } = vi.hoisted(() => ({
@@ -11,19 +12,24 @@ const { getSnapshotV2, getUserUsageTrend, getUserSpendingRanking } = vi.hoisted(
   getUserSpendingRanking: vi.fn()
 }))
 
-vi.mock('@/api/admin', () => ({
-  adminAPI: {
-    dashboard: {
-      getSnapshotV2,
-      getUserUsageTrend,
-      getUserSpendingRanking
-    }
+vi.mock('@/api/insights', () => ({
+  insightsDashboardAPI: {
+    getSnapshotV2,
+    getUserUsageTrend,
+    getUserSpendingRanking
   }
 }))
 
 vi.mock('@/stores/app', () => ({
   useAppStore: () => ({
     showError: vi.fn()
+  })
+}))
+
+vi.mock('@/composables/useBatchImageAccess', () => ({
+  useBatchImageAccess: () => ({
+    canUseBatchImage: { value: false },
+    refreshBatchImageAccess: vi.fn()
   })
 }))
 
@@ -142,5 +148,51 @@ describe('admin DashboardView', () => {
       end_date: formatLocalDate(now),
       granularity: 'hour'
     }))
+  })
+
+  it('hides quick actions from non-admin users', async () => {
+    const wrapper = mount(DashboardView, {
+      global: {
+        stubs: {
+          AppLayout: { template: '<div><slot /></div>' },
+          LoadingSpinner: true,
+          Icon: true,
+          DateRangePicker: true,
+          Select: true,
+          ModelDistributionChart: true,
+          TokenUsageTrend: true,
+          Line: true
+        }
+      }
+    })
+
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('admin.dashboard.quickActions')
+  })
+
+  it('keeps quick actions visible for admins', async () => {
+    const authStore = useAuthStore()
+    authStore.$patch({
+      token: 'admin-token',
+      user: { role: 'admin' } as any
+    })
+
+    const wrapper = mount(DashboardView, {
+      global: {
+        stubs: {
+          AppLayout: { template: '<div><slot /></div>' },
+          LoadingSpinner: true,
+          Icon: true,
+          DateRangePicker: true,
+          Select: true,
+          ModelDistributionChart: true,
+          TokenUsageTrend: true,
+          Line: true
+        }
+      }
+    })
+
+    await flushPromises()
+    expect(wrapper.text()).toContain('admin.dashboard.quickActions')
   })
 })

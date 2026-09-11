@@ -6,10 +6,10 @@ import { CONCRETE_PLATFORM_OPTIONS } from '@/constants/platforms'
 import HelpTooltip from '@/components/common/HelpTooltip.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import Icon from '@/components/icons/Icon.vue'
-import { adminAPI } from '@/api'
-import { opsAPI, type OpsDashboardOverview, type OpsMetricThresholds, type OpsRealtimeTrafficSummary } from '@/api/admin/ops'
+import { adminAPI, insightsOpsAPI, userGroupsAPI } from '@/api'
+import { type OpsDashboardOverview, type OpsMetricThresholds, type OpsRealtimeTrafficSummary } from '@/api/admin/ops'
 import type { OpsRequestDetailsPreset } from './OpsRequestDetailsModal.vue'
-import { useAdminSettingsStore } from '@/stores'
+import { useAdminSettingsStore, useAuthStore } from '@/stores'
 import { formatNumber } from '@/utils/format'
 import { formatMemorySizeMB } from '../utils/opsFormatters'
 
@@ -29,6 +29,7 @@ interface Props {
   fullscreen?: boolean
   customStartTime?: string | null
   customEndTime?: string | null
+  canManage?: boolean
 }
 
 interface Emits {
@@ -51,6 +52,7 @@ const emit = defineEmits<Emits>()
 
 const { t } = useI18n()
 const adminSettingsStore = useAdminSettingsStore()
+const authStore = useAuthStore()
 
 const realtimeWindow = ref<RealtimeWindow>('1min')
 
@@ -151,7 +153,9 @@ watch(
 
 onMounted(async () => {
   try {
-    const list = await adminAPI.groups.getAll()
+    const list = authStore.isAdmin
+      ? await adminAPI.groups.getAll()
+      : await userGroupsAPI.getAvailable()
     groups.value = list.map((g) => ({ id: g.id, name: g.name, platform: g.platform }))
   } catch (e) {
     console.error('[OpsDashboardHeader] Failed to load groups', e)
@@ -300,7 +304,7 @@ async function loadRealtimeTrafficSummary() {
   }
   realtimeTrafficLoading.value = true
   try {
-    const res = await opsAPI.getRealtimeTrafficSummary(realtimeWindow.value, props.platform, props.groupId)
+    const res = await insightsOpsAPI.getRealtimeTrafficSummary(realtimeWindow.value, props.platform, props.groupId)
     if (res && res.enabled === false) {
       adminSettingsStore.setOpsRealtimeMonitoringEnabledLocal(false)
     }
@@ -949,7 +953,7 @@ function handleToolbarRefresh() {
 
         <!-- Alert Rules Button (hidden in fullscreen) -->
         <button
-          v-if="!props.fullscreen"
+          v-if="props.canManage && !props.fullscreen"
           type="button"
           class="flex h-8 items-center gap-1.5 rounded-lg bg-blue-100 px-3 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
           :title="t('admin.ops.alertRules.title')"
@@ -963,7 +967,7 @@ function handleToolbarRefresh() {
 
         <!-- Settings Button (hidden in fullscreen) -->
         <button
-          v-if="!props.fullscreen"
+          v-if="props.canManage && !props.fullscreen"
           type="button"
           class="flex h-8 items-center gap-1.5 rounded-lg bg-gray-100 px-3 text-xs font-bold text-gray-700 transition-colors hover:bg-gray-200 dark:bg-dark-700 dark:text-gray-300 dark:hover:bg-dark-600"
           :title="t('admin.ops.settings.title')"

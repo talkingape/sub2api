@@ -886,7 +886,13 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   // Check admin requirement
-  if (requiresAdmin && !authStore.isAdmin && !(authStore.isOperator && ['/admin/accounts', '/admin/groups'].includes(to.path))) {
+  const sharedAdminViews = ['/admin/dashboard', '/admin/ops']
+  if (
+    requiresAdmin &&
+    !authStore.isAdmin &&
+    !sharedAdminViews.includes(to.path) &&
+    !(authStore.isOperator && ['/admin/accounts', '/admin/groups'].includes(to.path))
+  ) {
     // User is authenticated but not admin, redirect to user dashboard
     next('/dashboard')
     return

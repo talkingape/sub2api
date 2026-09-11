@@ -80,3 +80,14 @@ describe('AppSidebar subscription feature flag', () => {
     expect(componentSource).toMatch(/path: '\/purchase'[^\n]*label: purchaseNavLabel\.value/)
   })
 })
+
+describe('AppSidebar shared insights navigation', () => {
+  it('uses the shared system dashboard as the home page for every role', () => {
+    expect(componentSource).toContain("const homePath = computed(() => '/admin/dashboard')")
+  })
+
+  it('shows dashboard and ops overview in regular user navigation', () => {
+    expect(componentSource).toContain("{ path: '/admin/dashboard', label: t('nav.dashboard'), icon: DashboardIcon }")
+    expect(componentSource).toContain("{ path: '/admin/ops', label: t('nav.ops'), icon: ChartIcon, featureFlag: flagOpsMonitoring }")
+  })
+})

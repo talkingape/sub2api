@@ -25,6 +25,7 @@
         :fullscreen="isFullscreen"
         :custom-start-time="customStartTime"
         :custom-end-time="customEndTime"
+        :can-manage="authStore.isAdmin"
         @update:time-range="onTimeRangeChange"
         @update:platform="onPlatformChange"
         @update:group="onGroupChange"
@@ -41,10 +42,10 @@
 
       <!-- Row: Concurrency + Throughput -->
       <div v-if="opsEnabled && !(loading && !hasLoadedOnce)" class="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        <div class="lg:col-span-1 min-h-[360px]">
+        <div v-if="authStore.isAdmin" class="lg:col-span-1 min-h-[360px]">
           <OpsConcurrencyCard :platform-filter="platform" :group-id-filter="groupId" :refresh-token="dashboardRefreshToken" />
         </div>
-        <div class="lg:col-span-1 h-[360px]">
+        <div :class="[authStore.isAdmin ? 'lg:col-span-1' : 'lg:col-span-2', 'h-[360px]']">
           <OpsSwitchRateTrendChart
             :points="switchTrend?.points ?? []"
             :loading="loadingSwitchTrend"
@@ -85,7 +86,7 @@
       </div>
 
       <!-- Row: Token Stats -->
-      <div v-if="opsEnabled && showOpenAITokenStats && !(loading && !hasLoadedOnce)" class="grid grid-cols-1 gap-6">
+      <div v-if="authStore.isAdmin && opsEnabled && showOpenAITokenStats && !(loading && !hasLoadedOnce)" class="grid grid-cols-1 gap-6">
         <OpsOpenAITokenStatsCard
           :platform-filter="platform"
           :group-id-filter="groupId"
@@ -94,17 +95,17 @@
       </div>
 
       <!-- Alert Events -->
-      <OpsAlertEventsCard v-if="opsEnabled && showAlertEvents && !(loading && !hasLoadedOnce)" />
+      <OpsAlertEventsCard v-if="authStore.isAdmin && opsEnabled && showAlertEvents && !(loading && !hasLoadedOnce)" />
 
       <!-- System Logs -->
       <OpsSystemLogTable
-        v-if="opsEnabled && !(loading && !hasLoadedOnce)"
+        v-if="authStore.isAdmin && opsEnabled && !(loading && !hasLoadedOnce)"
         :platform-filter="platform"
         :refresh-token="dashboardRefreshToken"
       />
 
       <!-- Settings Dialog (hidden in fullscreen mode) -->
-      <template v-if="!isFullscreen">
+      <template v-if="authStore.isAdmin && !isFullscreen">
         <OpsSettingsDialog :show="showSettingsDialog" @close="showSettingsDialog = false" @saved="onSettingsSaved" />
 
         <BaseDialog :show="showAlertRulesCard" :title="t('admin.ops.alertRules.title')" width="extra-wide" @close="showAlertRulesCard = false">
@@ -156,7 +157,8 @@ import {
   type OpsThroughputTrendResponse,
   type OpsMetricThresholds
 } from '@/api/admin/ops'
-import { useAdminSettingsStore, useAppStore } from '@/stores'
+import { insightsOpsAPI } from '@/api/insights'
+import { useAdminSettingsStore, useAppStore, useAuthStore } from '@/stores'
 import OpsDashboardHeader from './components/OpsDashboardHeader.vue'
 import OpsDashboardSkeleton from './components/OpsDashboardSkeleton.vue'
 import OpsConcurrencyCard from './components/OpsConcurrencyCard.vue'
@@ -177,10 +179,11 @@ import OpsAlertRulesCard from './components/OpsAlertRulesCard.vue'
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
+const authStore = useAuthStore()
 const adminSettingsStore = useAdminSettingsStore()
 const { t } = useI18n()
 
-const opsEnabled = computed(() => adminSettingsStore.opsMonitoringEnabled)
+const opsEnabled = computed(() => !authStore.isAdmin || adminSettingsStore.opsMonitoringEnabled)
 
 type TimeRange = '5m' | '30m' | '1h' | '6h' | '24h' | 'custom'
 const allowedTimeRanges = new Set<TimeRange>(['5m', '30m', '1h', '6h', '24h', 'custom'])
@@ -297,17 +300,17 @@ const applyRouteQueryToState = () => {
 
   // Deep links
   const openRules = readQueryString(QUERY_KEYS.openAlertRules)
-  if (openRules === '1' || openRules === 'true') {
+  if (authStore.isAdmin && (openRules === '1' || openRules === 'true')) {
     showAlertRulesCard.value = true
   }
 
   const ruleID = readQueryNumber(QUERY_KEYS.alertRuleId)
-  if (typeof ruleID === 'number' && ruleID > 0) {
+  if (authStore.isAdmin && typeof ruleID === 'number' && ruleID > 0) {
     showAlertRulesCard.value = true
   }
 
   const openErr = readQueryString(QUERY_KEYS.openErrorDetails)
-  if (openErr === '1' || openErr === 'true') {
+  if (authStore.isAdmin && (openErr === '1' || openErr === 'true')) {
     const typ = readQueryString(QUERY_KEYS.errorType)
     errorDetailsType.value = typ === 'upstream' ? 'upstream' : 'request'
     showErrorDetails.value = true
@@ -451,6 +454,7 @@ function handleThroughputSelectGroup(nextGroupId: number) {
 }
 
 function handleOpenRequestDetails(preset?: OpsRequestDetailsPreset) {
+  if (!authStore.isAdmin) return
   const basePreset: OpsRequestDetailsPreset = {
     title: t('admin.ops.requestDetails.title'),
     kind: 'all',
@@ -466,6 +470,7 @@ function handleOpenRequestDetails(preset?: OpsRequestDetailsPreset) {
 }
 
 function openErrorDetails(kind: 'request' | 'upstream') {
+  if (!authStore.isAdmin) return
   errorDetailsType.value = kind
   // Ensure only one modal visible at a time.
   showRequestDetails.value = false
@@ -583,7 +588,7 @@ function buildSwitchTrendParams() {
 async function refreshOverviewWithCancel(fetchSeq: number, signal: AbortSignal) {
   if (!opsEnabled.value) return
   try {
-    const data = await opsAPI.getDashboardOverview(buildApiParams(), { signal })
+    const data = await insightsOpsAPI.getDashboardOverview(buildApiParams(), { signal })
     if (fetchSeq !== dashboardFetchSeq) return
     overview.value = data
   } catch (err: any) {
@@ -597,7 +602,7 @@ async function refreshSwitchTrendWithCancel(fetchSeq: number, signal: AbortSigna
   if (!opsEnabled.value) return
   loadingSwitchTrend.value = true
   try {
-    const data = await opsAPI.getThroughputTrend(buildSwitchTrendParams(), { signal })
+    const data = await insightsOpsAPI.getThroughputTrend(buildSwitchTrendParams(), { signal })
     if (fetchSeq !== dashboardFetchSeq) return
     switchTrend.value = data
   } catch (err: any) {
@@ -615,7 +620,7 @@ async function refreshThroughputTrendWithCancel(fetchSeq: number, signal: AbortS
   if (!opsEnabled.value) return
   loadingTrend.value = true
   try {
-    const data = await opsAPI.getThroughputTrend(buildApiParams(), { signal })
+    const data = await insightsOpsAPI.getThroughputTrend(buildApiParams(), { signal })
     if (fetchSeq !== dashboardFetchSeq) return
     throughputTrend.value = data
   } catch (err: any) {
@@ -634,7 +639,7 @@ async function refreshCoreSnapshotWithCancel(fetchSeq: number, signal: AbortSign
   loadingTrend.value = true
   loadingErrorTrend.value = true
   try {
-    const data = await opsAPI.getDashboardSnapshotV2(buildApiParams(), { signal })
+    const data = await insightsOpsAPI.getDashboardSnapshotV2(buildApiParams(), { signal })
     if (fetchSeq !== dashboardFetchSeq) return
     overview.value = data.overview
     throughputTrend.value = data.throughput_trend
@@ -659,7 +664,7 @@ async function refreshLatencyHistogramWithCancel(fetchSeq: number, signal: Abort
   if (!opsEnabled.value) return
   loadingLatency.value = true
   try {
-    const data = await opsAPI.getLatencyHistogram(buildApiParams(), { signal })
+    const data = await insightsOpsAPI.getLatencyHistogram(buildApiParams(), { signal })
     if (fetchSeq !== dashboardFetchSeq) return
     latencyHistogram.value = data
   } catch (err: any) {
@@ -677,7 +682,7 @@ async function refreshErrorTrendWithCancel(fetchSeq: number, signal: AbortSignal
   if (!opsEnabled.value) return
   loadingErrorTrend.value = true
   try {
-    const data = await opsAPI.getErrorTrend(buildApiParams(), { signal })
+    const data = await insightsOpsAPI.getErrorTrend(buildApiParams(), { signal })
     if (fetchSeq !== dashboardFetchSeq) return
     errorTrend.value = data
   } catch (err: any) {
@@ -695,7 +700,7 @@ async function refreshErrorDistributionWithCancel(fetchSeq: number, signal: Abor
   if (!opsEnabled.value) return
   loadingErrorDistribution.value = true
   try {
-    const data = await opsAPI.getErrorDistribution(buildApiParams(), { signal })
+    const data = await insightsOpsAPI.getErrorDistribution(buildApiParams(), { signal })
     if (fetchSeq !== dashboardFetchSeq) return
     errorDistribution.value = data
   } catch (err: any) {
@@ -807,17 +812,27 @@ onMounted(async () => {
   // Fullscreen mode: listen for ESC key
   window.addEventListener('keydown', handleKeydown)
 
-  await adminSettingsStore.fetch()
-  if (!adminSettingsStore.opsMonitoringEnabled) {
+  if (authStore.isAdmin) {
+    await adminSettingsStore.fetch()
+  }
+  if (authStore.isAdmin && !adminSettingsStore.opsMonitoringEnabled) {
     await router.replace('/admin/settings')
     return
   }
 
   // Load thresholds configuration
-  loadThresholds()
+  if (authStore.isAdmin) {
+    loadThresholds()
+  }
 
   // Load auto refresh settings
-  await loadDashboardAdvancedSettings()
+  if (authStore.isAdmin) {
+    await loadDashboardAdvancedSettings()
+  } else {
+    showAlertEvents.value = false
+    showOpenAITokenStats.value = false
+    autoRefreshEnabled.value = false
+  }
 
   if (opsEnabled.value) {
     await fetchData()
