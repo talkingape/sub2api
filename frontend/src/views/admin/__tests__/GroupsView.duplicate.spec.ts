@@ -246,7 +246,7 @@ describe('GroupsView duplicate action', () => {
     await form.trigger('submit')
     await flushPromises()
     expect(adminAPI.groups.create).toHaveBeenCalledWith({
-      name: 'Managed simple group', description: '', platform: 'anthropic',
+      name: 'Managed simple group', description: '', i18n: {}, platform: 'anthropic',
       manager_user_id: 7, allow_operator_contribution: true
     })
     wrapper.unmount()
@@ -268,7 +268,7 @@ describe('GroupsView duplicate action', () => {
     await form.trigger('submit')
     await flushPromises()
     expect(updateGroup).toHaveBeenCalledWith(42, {
-      name: 'Primary', description: '', manager_user_id: 0, allow_operator_contribution: false
+      name: 'Primary', description: '', i18n: {}, manager_user_id: 0, allow_operator_contribution: false
     })
     wrapper.unmount()
   })
